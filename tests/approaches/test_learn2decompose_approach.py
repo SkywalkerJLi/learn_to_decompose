@@ -1,0 +1,66 @@
+"""Tests for learn2decompose_approach.py."""
+
+import numpy as np
+
+from task_then_motion_planning.planning import TaskThenMotionPlanner
+
+from python_research_starter.approaches.learn2decompose_approach import Learn2DecomposeApproach
+from python_research_starter.benchmarks.maze_benchmark import MazeBenchmark
+from pybullet_blocks.envs.block_stacking_env import BlockStackingPyBulletBlocksEnv
+from python_research_starter.utils import plan_is_valid
+
+from pybullet_blocks.planning_models.action import get_active_operators_and_skills
+from pybullet_blocks.planning_models.perception import (
+    PREDICATES,
+    TYPES,
+    BlockStackingPyBulletBlocksPerceiver,
+)
+
+def test_learn2decompose_approach():
+    """Tests Learn2Decompose planning in BlockStackingPyBulletBlocksEnv()."""
+
+    env = BlockStackingPyBulletBlocksEnv(use_gui=False)
+    sim = BlockStackingPyBulletBlocksEnv(env.scene_description, use_gui=True)
+
+    # from gymnasium.wrappers import RecordVideo
+    # env = RecordVideo(env, "videos/block-stacking-ttmp-test")
+    max_motion_planning_time = 0.1  # increase for prettier videos
+
+    perceiver = BlockStackingPyBulletBlocksPerceiver(sim)
+    operators, skill_types = get_active_operators_and_skills()
+    skills = {
+        s(sim, max_motion_planning_time=max_motion_planning_time) for s in skill_types
+    }
+
+    # Create the planner.
+    planner = TaskThenMotionPlanner(
+        TYPES, PREDICATES, perceiver, operators, skills, planner_id="pyperplan"
+    )
+
+    # Run an episode.
+    obs, info = env.reset(
+        seed=99,
+    )
+    planner.reset(obs, info)
+    for _ in range(10000):  # should terminate earlier
+        action = planner.step(obs)
+        obs, reward, done, _, _ = env.step(action)
+        if done:  # goal reached!
+            assert reward > 0
+            break
+    else:
+        assert False, "Goal not reached"
+
+    env.close()
+
+    benchmark = MazeBenchmark(5, 8, 5, 8)
+    approach = Learn2DecomposeApproach(
+        benchmark.get_actions(),
+        benchmark.get_next_state,
+        benchmark.get_cost,
+        benchmark.check_goal,
+    )
+    rng = np.random.default_rng(123)
+    task = benchmark.generate_tasks(1, "train", rng)[0]
+    plan = approach.generate_plan(task, "test", 1.0, rng)
+    assert plan_is_valid(plan, task, benchmark)
