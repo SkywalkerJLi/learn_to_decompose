@@ -23,7 +23,7 @@ def test_pick_place_pybullet_blocks_action():
     """Tests task then motion planning in PickPlacePyBulletBlocksEnv()."""
 
     env = PickPlacePyBulletBlocksEnv(use_gui=False)
-    sim = PickPlacePyBulletBlocksEnv(env.scene_description, use_gui=True)
+    sim = PickPlacePyBulletBlocksEnv(env.scene_description, use_gui=False)
 
     # from gymnasium.wrappers import RecordVideo
     # env = RecordVideo(env, "videos/pick-place-ttmp-test")
@@ -59,7 +59,7 @@ def test_block_stacking_pybullet_blocks_action():
     """Tests task then motion planning in BlockStackingPyBulletBlocksEnv()."""
 
     env = BlockStackingPyBulletBlocksEnv(use_gui=False)
-    sim = BlockStackingPyBulletBlocksEnv(env.scene_description, use_gui=True)
+    sim = BlockStackingPyBulletBlocksEnv(env.scene_description, use_gui=False)
 
     # from gymnasium.wrappers import RecordVideo
     # env = RecordVideo(env, "videos/block-stacking-ttmp-test")
@@ -79,7 +79,6 @@ def test_block_stacking_pybullet_blocks_action():
     # Run an episode.
     obs, info = env.reset(
         seed=1000,
-        #options={"init_piles": [["I"], ["H"], ["M"]]}
     )
     planner.reset(obs, info)
     for _ in range(10000):  # should terminate earlier
