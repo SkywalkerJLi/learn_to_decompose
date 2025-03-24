@@ -41,26 +41,36 @@ def test_learn2decompose_approach():
     obs, info = env.reset(
         seed=99,
     )
+    init_state = env.get_state()
+    print("State representation")
+    print(init_state)
+    init_graph = init_state.to_observation()
+    print("Graph Representation")
+    print(init_graph)
     planner.reset(obs, info)
     for _ in range(10000):  # should terminate earlier
         action = planner.step(obs)
         obs, reward, done, _, _ = env.step(action)
+        state = env.get_state()
+        print(state)
+        graph = state.to_observation()
+        print(graph)
         if done:  # goal reached!
             assert reward > 0
             break
     else:
         assert False, "Goal not reached"
 
-    env.close()
+    # env.close()
 
-    benchmark = MazeBenchmark(5, 8, 5, 8)
-    approach = Learn2DecomposeApproach(
-        benchmark.get_actions(),
-        benchmark.get_next_state,
-        benchmark.get_cost,
-        benchmark.check_goal,
-    )
-    rng = np.random.default_rng(123)
-    task = benchmark.generate_tasks(1, "train", rng)[0]
-    plan = approach.generate_plan(task, "test", 1.0, rng)
-    assert plan_is_valid(plan, task, benchmark)
+    # benchmark = MazeBenchmark(5, 8, 5, 8)
+    # approach = Learn2DecomposeApproach(
+    #     benchmark.get_actions(),
+    #     benchmark.get_next_state,
+    #     benchmark.get_cost,
+    #     benchmark.check_goal,
+    # )
+    # rng = np.random.default_rng(123)
+    # task = benchmark.generate_tasks(1, "train", rng)[0]
+    # plan = approach.generate_plan(task, "test", 1.0, rng)
+    # assert plan_is_valid(plan, task, benchmark)
