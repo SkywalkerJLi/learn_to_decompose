@@ -25,6 +25,10 @@ from pybullet_blocks.envs.pick_place_env import (
     PickPlacePyBulletBlocksEnv,
     PickPlacePyBulletBlocksState,
 )
+from pybullet_blocks.envs.symbolic_block_stacking_env import (
+    SymbolicBlockStackingPyBulletBlocksEnv,
+    SymbolicBlockStackingPyBulletBlocksState,
+)
 
 # Create generic types.
 robot_type = Type("robot")
@@ -257,6 +261,67 @@ class BlockStackingPyBulletBlocksPerceiver(
         del obs
         goal: set[GroundAtom] = set()
         assert isinstance(self._sim, BlockStackingPyBulletBlocksEnv)
+        letter_to_block_id = self._sim.letter_to_block_id
+        pybullet_id_to_obj = {v: k for k, v in self._pybullet_ids.items()}
+        letter_to_obj = {
+            l: pybullet_id_to_obj[i] for l, i in letter_to_block_id.items()
+        }
+        for pile in info["goal_piles"]:
+            for bottom_letter, top_letter in zip(pile[:-1], pile[1:], strict=True):
+                top = letter_to_obj[top_letter]
+                bottom = letter_to_obj[bottom_letter]
+                atom = GroundAtom(On, [top, bottom])
+                goal.add(atom)
+        return goal
+
+    def _interpret_IsMovable(self) -> set[GroundAtom]:
+        return {GroundAtom(IsMovable, [block]) for block in self._active_blocks}
+    
+class SymbolicBlockStackingPyBulletBlocksPerceiver(
+    PyBulletBlocksPerceiver[gym.spaces.GraphInstance]
+):
+    """A perceiver for the SymbolicBlockStackingPyBulletBlocksEnv()."""
+
+    def __init__(self, sim: PyBulletBlocksEnv) -> None:
+        super().__init__(sim)
+
+        # Create constant objects.
+        assert isinstance(self._sim, SymbolicBlockStackingPyBulletBlocksEnv)
+        self._pybullet_ids = {
+            self._robot: self._sim.robot.robot_id,
+            self._table: self._sim.table_id,
+        }
+        for letter, block_id in self._sim.letter_to_block_id.items():
+            obj = Object(letter, object_type)
+            self._pybullet_ids[obj] = block_id
+        self._active_blocks: set[Object] = set()
+
+    def reset(
+        self,
+        obs: gym.spaces.GraphInstance,
+        info: dict[str, Any],
+    ) -> tuple[set[Object], set[GroundAtom], set[GroundAtom]]:
+        self._active_blocks = set()
+        assert isinstance(self._sim, SymbolicBlockStackingPyBulletBlocksEnv)
+        self._sim.set_state(SymbolicBlockStackingPyBulletBlocksState.from_observation(obs))
+        pybullet_id_to_obj = {v: k for k, v in self._pybullet_ids.items()}
+        for active_block_id in self._sim.active_block_ids:
+            active_block = pybullet_id_to_obj[active_block_id]
+            self._active_blocks.add(active_block)
+        return super().reset(obs, info)
+
+    def _get_objects(self) -> set[Object]:
+        return {self._robot, self._table} | self._active_blocks
+
+    def _set_sim_from_obs(self, obs: gym.spaces.GraphInstance) -> None:
+        self._sim.set_state(SymbolicBlockStackingPyBulletBlocksState.from_observation(obs))
+
+    def _get_goal(
+        self, obs: gym.spaces.GraphInstance, info: dict[str, Any]
+    ) -> set[GroundAtom]:
+        del obs
+        goal: set[GroundAtom] = set()
+        assert isinstance(self._sim, SymbolicBlockStackingPyBulletBlocksEnv)
         letter_to_block_id = self._sim.letter_to_block_id
         pybullet_id_to_obj = {v: k for k, v in self._pybullet_ids.items()}
         letter_to_obj = {

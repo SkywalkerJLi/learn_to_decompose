@@ -35,6 +35,10 @@ from pybullet_blocks.envs.pick_place_env import (
     PickPlacePyBulletBlocksEnv,
     PickPlacePyBulletBlocksState,
 )
+from pybullet_blocks.envs.symbolic_block_stacking_env import (
+    SymbolicBlockStackingPyBulletBlocksEnv,
+    SymbolicBlockStackingPyBulletBlocksState,
+)
 from pybullet_blocks.planning_models.perception import (
     Clear,
     GripperEmpty,
@@ -233,6 +237,12 @@ class PyBulletBlocksSkill(LiftedOperatorSkill[ObsType, NDArray[np.float32]]):
             assert len(obj.name) == 1
             letter = obj.name
             return self._sim.letter_to_block_id[letter]
+        if isinstance(self._sim, SymbolicBlockStackingPyBulletBlocksEnv):
+            if obj.name == "table":
+                return self._sim.table_id
+            assert len(obj.name) == 1
+            letter = obj.name
+            return self._sim.letter_to_block_id[letter]
         if isinstance(self._sim, ClearAndPlacePyBulletBlocksEnv):
             if obj.name == "table":
                 return self._sim.table_id
@@ -256,6 +266,8 @@ class PyBulletBlocksSkill(LiftedOperatorSkill[ObsType, NDArray[np.float32]]):
             return BlockStackingPyBulletBlocksState.from_observation(obs)  # type: ignore
         if isinstance(self._sim, ClearAndPlacePyBulletBlocksEnv):
             return ClearAndPlacePyBulletBlocksState.from_observation(obs)  # type: ignore
+        if isinstance(self._sim, SymbolicBlockStackingPyBulletBlocksEnv):
+            return SymbolicBlockStackingPyBulletBlocksState.from_observation(obs)  # type: ignore
         raise NotImplementedError
 
     def _sim_state_to_kinematic_state(
@@ -274,8 +286,8 @@ class PyBulletBlocksSkill(LiftedOperatorSkill[ObsType, NDArray[np.float32]]):
                 attachments[self._sim.block_id] = sim_state.robot_state.grasp_transform
             return KinematicState(robot_joints, object_poses, attachments)
 
-        if isinstance(sim_state, BlockStackingPyBulletBlocksState):
-            assert isinstance(self._sim, BlockStackingPyBulletBlocksEnv)
+        if isinstance(sim_state, (BlockStackingPyBulletBlocksState, SymbolicBlockStackingPyBulletBlocksState)):
+            assert isinstance(self._sim, (BlockStackingPyBulletBlocksEnv, SymbolicBlockStackingPyBulletBlocksEnv))
             robot_joints = sim_state.robot_state.joint_positions
             object_poses = {
                 self._sim.table_id: self._sim.scene_description.table_pose,
@@ -391,7 +403,7 @@ class PlaceSkill(PyBulletBlocksSkill):
         self, held_obj_id: int, table_id: int, state: KinematicState
     ) -> Iterator[Pose]:
         if isinstance(
-            self._sim, (BlockStackingPyBulletBlocksEnv, ClearAndPlacePyBulletBlocksEnv)
+            self._sim, (BlockStackingPyBulletBlocksEnv, ClearAndPlacePyBulletBlocksEnv, SymbolicBlockStackingPyBulletBlocksEnv)
         ):
             while True:
                 world_to_placement = self._sim.sample_free_block_pose(held_obj_id)

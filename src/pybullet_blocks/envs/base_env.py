@@ -108,6 +108,51 @@ class LetteredBlockState(BlockState):
         pose = Pose(tuple(pos_vec), tuple(orn_vec))
         return cls(pose, letter, held)
 
+@dataclass(frozen=True)
+class LetteredBlockSymbolicState(BlockState):
+    """The state of a single block with a letter on it."""
+
+    letter: str
+    held: bool
+    on: str
+
+    @classmethod
+    def get_dimension(cls) -> int:
+        """Get the dimension of this state."""
+        return super().get_dimension() + 3
+
+    def to_vec(self) -> NDArray[np.float32]:
+        """Create vector representation of the state."""
+        return np.hstack(
+            [
+                [1],  # indicates that this is a block
+                self.pose.position,
+                self.pose.orientation,
+                [ord(self.letter.lower()) - 97],
+                [self.held],
+                [ord(self.on.lower()) - 97 if self.on is not None else -1]
+            ]
+        )
+
+    @classmethod
+    def from_vec(cls, vec: NDArray[np.float32]) -> LetteredBlockSymbolicState:
+        """Build a state from a vector."""
+        (
+            _,
+            pos_vec,
+            orn_vec,
+            letter_vec,
+            held_vec,
+            on_vec,
+        ) = np.split(
+            vec,
+            [1, 4, 8, 9, 10],
+        )
+        letter = chr(int(letter_vec[0] + 97)).upper()
+        held = bool(held_vec[0])
+        pose = Pose(tuple(pos_vec), tuple(orn_vec))
+        on = chr(int(on_vec[0] + 97)).upper() if on_vec[0] is not -1 else None
+        return cls(pose, letter, held, on)
 
 @dataclass(frozen=True)
 class RobotState:
