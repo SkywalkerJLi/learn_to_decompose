@@ -15,7 +15,6 @@ from pybullet_helpers.inverse_kinematics import check_body_collisions
 
 from pybullet_blocks.envs.base_env import (
     BaseSceneDescription,
-    LetteredBlockState,
     LetteredBlockSymbolicState,
     PyBulletBlocksEnv,
     PyBulletBlocksState,
@@ -34,7 +33,9 @@ class SymbolicBlockStackingPyBulletBlocksState(PyBulletBlocksState):
     @classmethod
     def get_node_dimension(cls) -> int:
         """Get the dimensionality of nodes."""
-        return max(RobotState.get_dimension(), LetteredBlockSymbolicState.get_dimension())
+        return max(
+            RobotState.get_dimension(), LetteredBlockSymbolicState.get_dimension()
+        )
 
     def to_observation(self) -> spaces.GraphInstance:
         """Create graph representation of the state."""
@@ -49,7 +50,7 @@ class SymbolicBlockStackingPyBulletBlocksState(PyBulletBlocksState):
             on_letter = chr(int(block_vec[10] + 97)).upper() if is_on else None
 
             letters.append(letter)
-        #print(letters)
+        # print(letters)
         node_to_index = {letter: i for i, letter in enumerate(letters)}
 
         edge_links: list[NDArray] = []
@@ -196,7 +197,10 @@ class SymbolicBlockStackingPyBulletBlocksEnv(
                     z_pos_2 = block_pose_2.position[2]
 
                     if abs(x_pos_1 - x_pos_2) < 1e-4 and abs(y_pos_1 - y_pos_2) < 1e-4:
-                        if z_pos_1 - z_pos_2 < block_height + 1e-4 and z_pos_1 - z_pos_2 > block_height - 1e-4:
+                        if (
+                            z_pos_1 - z_pos_2 < block_height + 1e-4
+                            and z_pos_1 - z_pos_2 > block_height - 1e-4
+                        ):
                             on = self._block_id_to_letter[block_id_2]
 
             block_state = LetteredBlockSymbolicState(block_pose_1, letter, held, on)

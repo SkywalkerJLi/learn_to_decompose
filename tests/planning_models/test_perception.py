@@ -34,7 +34,7 @@ def test_block_stacking_pybullet_blocks_perceiver():
     """Tests for BlockStackingPyBulletBlocksPerceiver()."""
 
     env = BlockStackingPyBulletBlocksEnv(use_gui=False)
-    sim = BlockStackingPyBulletBlocksEnv(env.scene_description, use_gui=True)
+    sim = BlockStackingPyBulletBlocksEnv(env.scene_description, use_gui=False)
     perceiver = BlockStackingPyBulletBlocksPerceiver(sim)
 
     obs, info = env.reset(

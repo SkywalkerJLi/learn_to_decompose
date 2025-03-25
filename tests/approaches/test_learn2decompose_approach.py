@@ -1,20 +1,20 @@
 """Tests for learn2decompose_approach.py."""
 
-import numpy as np
-
 from task_then_motion_planning.planning import TaskThenMotionPlanner
 
-from python_research_starter.approaches.learn2decompose_approach import Learn2DecomposeApproach
-from python_research_starter.benchmarks.maze_benchmark import MazeBenchmark
-from pybullet_blocks.envs.symbolic_block_stacking_env import SymbolicBlockStackingPyBulletBlocksEnv
-from python_research_starter.utils import plan_is_valid
-
+from pybullet_blocks.envs.symbolic_block_stacking_env import (
+    SymbolicBlockStackingPyBulletBlocksEnv,
+)
 from pybullet_blocks.planning_models.action import get_active_operators_and_skills
 from pybullet_blocks.planning_models.perception import (
     PREDICATES,
     TYPES,
     SymbolicBlockStackingPyBulletBlocksPerceiver,
 )
+from python_research_starter.approaches.learn2decompose_approach import (
+    Learn2DecomposeApproach,
+)
+
 
 def test_learn2decompose_approach():
     """Tests Learn2Decompose planning in BlockStackingPyBulletBlocksEnv()."""

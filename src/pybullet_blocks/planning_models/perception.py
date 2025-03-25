@@ -276,7 +276,8 @@ class BlockStackingPyBulletBlocksPerceiver(
 
     def _interpret_IsMovable(self) -> set[GroundAtom]:
         return {GroundAtom(IsMovable, [block]) for block in self._active_blocks}
-    
+
+
 class SymbolicBlockStackingPyBulletBlocksPerceiver(
     PyBulletBlocksPerceiver[gym.spaces.GraphInstance]
 ):
@@ -303,7 +304,9 @@ class SymbolicBlockStackingPyBulletBlocksPerceiver(
     ) -> tuple[set[Object], set[GroundAtom], set[GroundAtom]]:
         self._active_blocks = set()
         assert isinstance(self._sim, SymbolicBlockStackingPyBulletBlocksEnv)
-        self._sim.set_state(SymbolicBlockStackingPyBulletBlocksState.from_observation(obs))
+        self._sim.set_state(
+            SymbolicBlockStackingPyBulletBlocksState.from_observation(obs)
+        )
         pybullet_id_to_obj = {v: k for k, v in self._pybullet_ids.items()}
         for active_block_id in self._sim.active_block_ids:
             active_block = pybullet_id_to_obj[active_block_id]
@@ -314,7 +317,9 @@ class SymbolicBlockStackingPyBulletBlocksPerceiver(
         return {self._robot, self._table} | self._active_blocks
 
     def _set_sim_from_obs(self, obs: gym.spaces.GraphInstance) -> None:
-        self._sim.set_state(SymbolicBlockStackingPyBulletBlocksState.from_observation(obs))
+        self._sim.set_state(
+            SymbolicBlockStackingPyBulletBlocksState.from_observation(obs)
+        )
 
     def _get_goal(
         self, obs: gym.spaces.GraphInstance, info: dict[str, Any]

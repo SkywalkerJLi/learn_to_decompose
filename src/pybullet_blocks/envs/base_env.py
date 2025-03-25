@@ -108,6 +108,7 @@ class LetteredBlockState(BlockState):
         pose = Pose(tuple(pos_vec), tuple(orn_vec))
         return cls(pose, letter, held)
 
+
 @dataclass(frozen=True)
 class LetteredBlockSymbolicState(BlockState):
     """The state of a single block with a letter on it."""
@@ -130,7 +131,7 @@ class LetteredBlockSymbolicState(BlockState):
                 self.pose.orientation,
                 [ord(self.letter.lower()) - 97],
                 [self.held],
-                [ord(self.on.lower()) - 97 if self.on is not None else -1]
+                [ord(self.on.lower()) - 97 if self.on is not None else -1],
             ]
         )
 
@@ -153,6 +154,7 @@ class LetteredBlockSymbolicState(BlockState):
         pose = Pose(tuple(pos_vec), tuple(orn_vec))
         on = chr(int(on_vec[0] + 97)).upper() if on_vec[0] is not -1 else None
         return cls(pose, letter, held, on)
+
 
 @dataclass(frozen=True)
 class RobotState:

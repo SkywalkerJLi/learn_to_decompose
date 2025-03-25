@@ -286,8 +286,20 @@ class PyBulletBlocksSkill(LiftedOperatorSkill[ObsType, NDArray[np.float32]]):
                 attachments[self._sim.block_id] = sim_state.robot_state.grasp_transform
             return KinematicState(robot_joints, object_poses, attachments)
 
-        if isinstance(sim_state, (BlockStackingPyBulletBlocksState, SymbolicBlockStackingPyBulletBlocksState)):
-            assert isinstance(self._sim, (BlockStackingPyBulletBlocksEnv, SymbolicBlockStackingPyBulletBlocksEnv))
+        if isinstance(
+            sim_state,
+            (
+                BlockStackingPyBulletBlocksState,
+                SymbolicBlockStackingPyBulletBlocksState,
+            ),
+        ):
+            assert isinstance(
+                self._sim,
+                (
+                    BlockStackingPyBulletBlocksEnv,
+                    SymbolicBlockStackingPyBulletBlocksEnv,
+                ),
+            )
             robot_joints = sim_state.robot_state.joint_positions
             object_poses = {
                 self._sim.table_id: self._sim.scene_description.table_pose,
@@ -403,7 +415,12 @@ class PlaceSkill(PyBulletBlocksSkill):
         self, held_obj_id: int, table_id: int, state: KinematicState
     ) -> Iterator[Pose]:
         if isinstance(
-            self._sim, (BlockStackingPyBulletBlocksEnv, ClearAndPlacePyBulletBlocksEnv, SymbolicBlockStackingPyBulletBlocksEnv)
+            self._sim,
+            (
+                BlockStackingPyBulletBlocksEnv,
+                ClearAndPlacePyBulletBlocksEnv,
+                SymbolicBlockStackingPyBulletBlocksEnv,
+            ),
         ):
             while True:
                 world_to_placement = self._sim.sample_free_block_pose(held_obj_id)
