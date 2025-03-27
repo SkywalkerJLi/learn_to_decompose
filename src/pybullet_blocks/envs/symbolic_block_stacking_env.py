@@ -42,6 +42,7 @@ class SymbolicBlockStackingPyBulletBlocksState(PyBulletBlocksState):
         inner_vecs: list[NDArray] = [
             self.robot_state.to_vec(),
         ]
+        #print(len(inner_vecs[0]))
         letters = []
         for block_state in self.block_states:
             block_vec = block_state.to_vec()
@@ -51,25 +52,33 @@ class SymbolicBlockStackingPyBulletBlocksState(PyBulletBlocksState):
 
             letters.append(letter)
         # print(letters)
-        node_to_index = {letter: i for i, letter in enumerate(letters)}
+        node_to_index = {letter: i for i, letter in enumerate(sorted(letters))}
 
+        edges = np.array([])
         edge_links: list[NDArray] = []
+        letter_links: list[NDArray] = []
         for block_state in self.block_states:
             block_vec = block_state.to_vec()
             is_on = block_vec[10] != -1
             letter = chr(int(block_vec[8] + 97)).upper()
-            on_letter = chr(int(block_vec[10] + 97)).upper() if is_on else None
+            is_on_letter = chr(int(block_vec[10] + 97)).upper() if is_on else None
 
             if is_on:
-                edge_links.append([node_to_index[on_letter], node_to_index[letter]])
-            # print(block_vec)
-            # print(is_on)
+                edges = np.append(edges, 1)
+                edge_links.append([node_to_index[letter], node_to_index[is_on_letter]])
+                letter_links.append([on_letter, letter])
+            # print(is_on) 
             # print(letter)
             # print(on_letter)
+            #print(block_vec)
             inner_vecs.append(block_vec)
-        print("---------")
-        print("edge links")
-        print(edge_links)
+            #print(len(inner_vecs))
+        edge_links = np.array(edge_links)
+        # print("---------")
+        # print("edge links")
+        # print(edge_links)
+        # print('edge value')
+        # print(edges)
         padded_vecs: list[NDArray] = []
         for vec in inner_vecs:
             padded_vec = np.zeros(self.get_node_dimension(), dtype=np.float32)
@@ -77,7 +86,7 @@ class SymbolicBlockStackingPyBulletBlocksState(PyBulletBlocksState):
             padded_vecs.append(padded_vec)
         arr = np.array(padded_vecs, dtype=np.float32)
 
-        return spaces.GraphInstance(nodes=arr, edges=None, edge_links=None)
+        return spaces.GraphInstance(nodes=arr, edges=edges, edge_links=edge_links)
 
     @classmethod
     def from_observation(
@@ -178,33 +187,35 @@ class SymbolicBlockStackingPyBulletBlocksEnv(
 
     def get_state(self) -> SymbolicBlockStackingPyBulletBlocksState:
         block_states = []
-        block_height = 2 * self.scene_description.block_half_extents[2]
+        active_block_ids_list = list(self.active_block_ids)
+        # print("active list")
+        # print(active_block_ids_list)
+        stack_list = []
+        # print("-----------------")
         for block_id_1 in self.active_block_ids:
             block_pose_1 = get_pose(block_id_1, self.physics_client_id)
             letter = self._block_id_to_letter[block_id_1]
             held = bool(self.current_held_object_id == block_id_1)
             on = None
             for block_id_2 in self.active_block_ids:
-                if block_id_2 != block_id_1:
+                #print(block_id_1, block_id_2)
+                if block_id_1 != block_id_2:
                     block_pose_2 = get_pose(block_id_2, self.physics_client_id)
-
-                    x_pos_1 = block_pose_1.position[0]
-                    y_pos_1 = block_pose_1.position[1]
-                    z_pos_1 = block_pose_1.position[2]
-
-                    x_pos_2 = block_pose_2.position[0]
-                    y_pos_2 = block_pose_2.position[1]
-                    z_pos_2 = block_pose_2.position[2]
-
-                    if abs(x_pos_1 - x_pos_2) < 1e-4 and abs(y_pos_1 - y_pos_2) < 1e-4:
-                        if (
-                            z_pos_1 - z_pos_2 < block_height + 1e-4
-                            and z_pos_1 - z_pos_2 > block_height - 1e-4
-                        ):
-                            on = self._block_id_to_letter[block_id_2]
+                    top_on_bottom = check_body_collisions(
+                        block_id_2,
+                        block_id_1,
+                        self.physics_client_id,
+                        distance_threshold=1e-2,
+                    )
+                    if top_on_bottom and block_pose_1.position[2] > block_pose_2.position[2]:
+                        #print(self._block_id_to_letter[block_id_1] + " is on top of " + self._block_id_to_letter[block_id_2])
+                        stack_list.append([block_id_1, block_id_2])
+                        on = self._block_id_to_letter[block_id_2]
 
             block_state = LetteredBlockSymbolicState(block_pose_1, letter, held, on)
             block_states.append(block_state)
+        #print("stack list")
+        #print(stack_list)
         robot_joints = self.robot.get_joint_positions()
         grasp_transform = self.current_grasp_transform
         robot_state = RobotState(robot_joints, grasp_transform)
