@@ -152,7 +152,7 @@ class LetteredBlockSymbolicState(BlockState):
         letter = chr(int(letter_vec[0] + 97)).upper()
         held = bool(held_vec[0])
         pose = Pose(tuple(pos_vec), tuple(orn_vec))
-        on = chr(int(on_vec[0] + 97)).upper() if on_vec[0] is not -1 else None
+        on = chr(int(on_vec[0] + 97)).upper() if on_vec[0] != -1 else None
         return cls(pose, letter, held, on)
 
 
@@ -271,10 +271,10 @@ class BaseSceneDescription:
         return (
             self.table_pose.position[0]
             - self.table_half_extents[0]
-            + self.block_half_extents[0],
+            + self.block_half_extents[0]+0.05,
             self.table_pose.position[1]
             - self.table_half_extents[1]
-            + self.block_half_extents[1],
+            + self.block_half_extents[1]+0.05,
             self.table_pose.position[2]
             + self.table_half_extents[2]
             + self.block_half_extents[2],
@@ -286,10 +286,10 @@ class BaseSceneDescription:
         return (
             self.table_pose.position[0]
             + self.table_half_extents[0]
-            - self.block_half_extents[0],
+            - self.block_half_extents[0] - 0.05,
             self.table_pose.position[1]
             + self.table_half_extents[1]
-            - self.block_half_extents[1],
+            - self.block_half_extents[1] - 0.05,
             self.table_pose.position[2]
             + self.table_half_extents[2]
             + self.block_half_extents[2],
@@ -617,6 +617,7 @@ class PyBulletBlocksEnv(gym.Env, Generic[ObsType, ActType]):
                     collision_id,
                     self.physics_client_id,
                     perform_collision_detection=False,
+                    distance_threshold = 0.05
                 )
                 if collision:
                     collision_free = False
