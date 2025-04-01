@@ -53,15 +53,16 @@ def create_edge_dict(num_nodes):
     count = 0
     for i in range(num_nodes):
         for j in range(i + 1, num_nodes):
-            edge_dict[tuple(i, j)] = count
+            edge_dict[tuple((i, j))] = count
             count += 1
-            edge_dict[tuple(j, i)] = count
+            edge_dict[tuple((j, i))] = count
             count += 1
     return edge_dict
-def test_learn2decompose_approach():
+
+def test_learn2decompose_approach(return_edge_links = True):
     """Tests Learn2Decompose planning in BlockStackingPyBulletBlocksEnv()."""
 
-    np.random.seed(2)
+    np.random.seed(10)
 
     elements = [0, 1, 2, 3, 4, 5]
     # Generate all partitions and assign them fixed numbers
@@ -69,148 +70,113 @@ def test_learn2decompose_approach():
     
     print(all_partitions)
 
+    edge_links_to_index = create_edge_dict(6)
+    print(edge_links_to_index)
 
+    partition_dict = create_partition_dict(all_partitions)
 
-    # # Assign a unique index to each partition
-    # index_to_partition = {i: part for i, part in enumerate(all_partitions)}
+    env = SymbolicBlockStackingPyBulletBlocksEnv(use_gui=True)
+    sim = SymbolicBlockStackingPyBulletBlocksEnv(env.scene_description, use_gui=False)
 
-    # partition_dict = create_partition_dict(all_partitions)
+    # from gymnasium.wrappers import RecordVideo
+    # env = RecordVideo(env, "videos/block-stacking-ttmp-test")
+    max_motion_planning_time = 0.5  # increase for prettier videos
 
-    # env = SymbolicBlockStackingPyBulletBlocksEnv(use_gui=True)
-    # sim = SymbolicBlockStackingPyBulletBlocksEnv(env.scene_description, use_gui=False)
+    perceiver = SymbolicBlockStackingPyBulletBlocksPerceiver(sim)
+    operators, skill_types = get_active_operators_and_skills()
+    skills = {
+        s(sim, max_motion_planning_time=max_motion_planning_time) for s in skill_types
+    }
 
-    # # from gymnasium.wrappers import RecordVideo
-    # # env = RecordVideo(env, "videos/block-stacking-ttmp-test")
-    # max_motion_planning_time = 0.5  # increase for prettier videos
+    # Create the planner.
+    planner = TaskThenMotionPlanner(
+        TYPES, PREDICATES, perceiver, operators, skills, planner_id="pyperplan"
+    )
 
-    # perceiver = SymbolicBlockStackingPyBulletBlocksPerceiver(sim)
-    # operators, skill_types = get_active_operators_and_skills()
-    # skills = {
-    #     s(sim, max_motion_planning_time=max_motion_planning_time) for s in skill_types
-    # }
+    # Run an episode.
+    # seed = 99
 
-    # # Create the planner.
-    # planner = TaskThenMotionPlanner(
-    #     TYPES, PREDICATES, perceiver, operators, skills, planner_id="pyperplan"
-    # )
+    # Generate a list of all possible initial configurations
+    scene_blocks = ["A", "B", "C", "D", "E", "F"]
+    init_configurations = list(multiset_partitions(scene_blocks, m=None))
+    goal_pile = [["A", "B", "C", "D", "E", "F"]]
 
-    # # Run an episode.
-    # # seed = 99
+    # Number of distinct demonstrations to generate scene data from
+    num_demonstrations = 100
 
-    # # Generate a list of all possible initial configurations
-    # scene_blocks = ["A", "B", "C", "D", "E", "F"]
-    # test_blocks = [["B", "A", "C"]]
-    # init_configurations = list(multiset_partitions(scene_blocks, m=None))
-    # goal_pile = [["A", "B", "C", "D", "E", "F"]]
-    # test_goal = [["A", "C", "B"]]
+    all_demonstrations = []
+    for demo in range(num_demonstrations):
+        print('START')
+        seed = np.random.randint(0, 1000)
+        rand_index = np.random.randint(0, len(init_configurations))
+        init_piles = init_configurations[rand_index]
+        for pile in init_piles:
+            random.shuffle(pile)
+        print(init_piles)
 
-    # # Number of distinct demonstrations to train on
-    # num_demonstrations = 100
-
-    # all_demonstrations = []
-    # for demo in range(num_demonstrations):
-    #     print('START')
-    #     seed = np.random.randint(0, 1000)
-    #     rand_index = np.random.randint(0, len(init_configurations))
-    #     init_piles = init_configurations[rand_index]
-    #     for pile in init_piles:
-    #         random.shuffle(pile)
-    #     print(init_piles)
-
-    #     scene_init = {
-    #         "init_piles": init_piles,
-    #         "goal_piles": goal_pile,
-    #     }
+        scene_init = {
+            "init_piles": init_piles,
+            "goal_piles": goal_pile,
+        }
         
-    #     obs, info = env.reset(
-    #         seed = seed,
-    #         options = scene_init
-    #     )
+        obs, info = env.reset(
+            seed = seed,
+            options = scene_init
+        )
 
-    #     # print("OBSERVATIONS")
-    #     # print(obs)
-    #     init_state = env.get_state()
-    #     # print("State representation")
-    #     # print(init_state)
+        init_state = env.get_state()
+        init_graph = init_state.to_observation()
+        nodes = init_graph.nodes
+        edge_links = init_graph.edge_links
+        demonstration = []
 
-    #     #test_partition = partition_to_key([[1,2], [3,4],[5,6]])
-    #     #print(partition_dict[test_partition])
+        connected_components = find_connected_components(edge_links, len(nodes) - 1)
+        scene_subgraph_id = partition_dict[partition_to_key(connected_components)]
+        previous_unique_parition_id = scene_subgraph_id
+        
+        if return_edge_links:
+            for edge_link in edge_links:
+                demonstration.append(edge_links_to_index[tuple(edge_link)])
+            demonstration.append(-1)
+        else:
+            demonstration.append(scene_subgraph_id)
+            demonstration.append(-1)
 
-    #     init_graph = init_state.to_observation()
-    #     nodes = init_graph.nodes
-    #     edge_links = init_graph.edge_links
-    #     print(edge_links)
-    #     connected_components = find_connected_components(edge_links, len(nodes) - 1)
-    #     print('ordered components')
-    #     print(connected_components)
+        planner.reset(obs, info)
 
-    #     #env.close()
-    #     #print("Graph Representation")
-    #     #print(init_graph)
-    #     planner.reset(obs, info)
+        print('Running demo: ', demo)
+        for _ in range(10000):  # should terminate earlier
+            action = planner.step(obs)
+            obs, reward, done, _, _ = env.step(action)
+            state = env.get_state()
+            scene_graph = state.to_observation()
+            nodes = scene_graph.nodes
+            edge_links = scene_graph.edge_links
 
-    #     print('Running demo: ', demo)
+            connected_components = find_connected_components(edge_links, len(nodes) - 1)
+            scene_subgraph_id = partition_dict[partition_to_key(connected_components)]
 
-    #     demonstration = []
-    #     for _ in range(10000):  # should terminate earlier
-    #         action = planner.step(obs)
-    #         obs, reward, done, _, _ = env.step(action)
-    #         state = env.get_state()
-    #         # print(state)
-    #         scene_graph = state.to_observation()
-    #         nodes = scene_graph.nodes
-    #         edge_links = scene_graph.edge_links
-    #         # print("nodes")
-    #         # print(nodes)
-    #         # print("edge-links")
-    #         # print(edge_links)
-    #         # print("--------------------------------")
-    #         connected_components = find_connected_components(edge_links, len(nodes) - 1)
-    #         print(connected_components)
-    #         scene_subgraph_id = partition_dict[partition_to_key(connected_components)]
-
-    #         print(connected_components)
-
-    #         # print(scene_subgraph_id)
-    #         if len(demonstration) == 0:
-    #             demonstration.append(scene_subgraph_id)
-    #         elif len(demonstration) > 0 and demonstration[-1] != scene_subgraph_id:
-    #             demonstration.append(scene_subgraph_id)
-    #         if done:  # goal reached!
-    #             assert reward > 0
-    #             break
-    #     else:
-    #         assert False, "Goal not reached"
-
-    #     #print(demonstration)
-    #     with open("demonstration.txt", "a", encoding="utf-8") as file:
-    #         file.write(", ".join(map(str, demonstration)) + "\n")  # Joins without extra comma
-
-    #     # with open("demonstration.txt", "w", encoding="utf-8") as file:
-    #     #     for partition in demonstration:
-    #     #         file.write(str(partition) + ", ")
-    #     #     #file.write(", ".join(str(demonstration)))  # Join list elements into a single string
-    #     #     file.write("\n")
-    #     #print()
-    #     all_demonstrations.append(demonstration)
-
-    # print("------------------------------------")
-    # print(all_demonstrations)
-    # # scene_init = {
-    # #     "init_piles": [["A","B"], ["C", "D"], ["E", "F"]],
-    # #     "goal_piles": [["A", "B", "C", "D", "E", "F"]],
-    # # }
+            if scene_subgraph_id != previous_unique_parition_id:
+                if return_edge_links:
+                    for edge_link in edge_links:
+                        demonstration.append(edge_links_to_index[tuple(edge_link)])
+                    demonstration.append(-1)
+                else:
+                    demonstration.append(scene_subgraph_id)
+                    demonstration.append(-1)
+                previous_unique_parition_id = scene_subgraph_id
+            if done:  # goal reached!
+                assert reward > 0
+                break
+        else:
+            assert False, "Goal not reached"
+        
+        demonstration.append(-2)
+        if return_edge_links:
+            with open("edge_links.txt", "a", encoding = "utf-8") as file:
+                file.write(", ".join(map(str, demonstration)) + "\n")  # Joins without extra comma
+        else:
+            with open("partitions.txt", "a", encoding="utf-8") as file:
+                file.write(", ".join(map(str, demonstration)) + "\n")  # Joins without extra comma
     
-    # env.close()
-
-    # benchmark = MazeBenchmark(5, 8, 5, 8)
-    # approach = Learn2DecomposeApproach(
-    #     benchmark.get_actions(),
-    #     benchmark.get_next_state,
-    #     benchmark.get_cost,
-    #     benchmark.check_goal,
-    # )
-    # rng = np.random.default_rng(123)
-    # task = benchmark.generate_tasks(1, "train", rng)[0]
-    # plan = approach.generate_plan(task, "test", 1.0, rng)
-    # assert plan_is_valid(plan, task, benchmark)
+    env.close()

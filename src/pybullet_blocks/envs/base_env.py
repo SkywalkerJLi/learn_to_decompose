@@ -301,10 +301,10 @@ class BaseSceneDescription:
         return (
             self.table_pose.position[0]
             - self.table_half_extents[0]
-            + self.target_half_extents[0],
+            + self.target_half_extents[0] + 0.05,
             self.table_pose.position[1]
             - self.table_half_extents[1]
-            + self.target_half_extents[1],
+            + self.target_half_extents[1] + 0.05,
             self.table_pose.position[2]
             + self.table_half_extents[2]
             + self.target_half_extents[2],
@@ -617,7 +617,7 @@ class PyBulletBlocksEnv(gym.Env, Generic[ObsType, ActType]):
                     collision_id,
                     self.physics_client_id,
                     perform_collision_detection=False,
-                    distance_threshold = 0.05
+                    distance_threshold = 0.1
                 )
                 if collision:
                     collision_free = False
