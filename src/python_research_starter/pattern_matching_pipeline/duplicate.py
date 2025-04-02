@@ -6,8 +6,9 @@ def remove_duplicate_words(input_file, output_file):
         for line in lines:
             words = line.split()
             unique_words = list(dict.fromkeys(words))
-            unique_words.remove('-1')
+            unique_words.remove("-1")
             file.write(" ".join(unique_words) + "\n")
+
 
 # Example usage
 remove_duplicate_words("temp.txt", "temp_nodup.txt")

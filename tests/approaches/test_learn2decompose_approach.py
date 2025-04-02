@@ -1,8 +1,9 @@
 """Tests for learn2decompose_approach.py."""
 
-import numpy as np
-import networkx as nx
 import random
+
+import networkx as nx
+import numpy as np
 from sympy.utilities.iterables import multiset_partitions
 from task_then_motion_planning.planning import TaskThenMotionPlanner
 
@@ -15,10 +16,10 @@ from pybullet_blocks.planning_models.perception import (
     TYPES,
     SymbolicBlockStackingPyBulletBlocksPerceiver,
 )
-from python_research_starter.approaches.learn2decompose_approach import (
-    Learn2DecomposeApproach,
-)
 
+"""
+    Given directed edge links and list of nodes, return the directed connected components of the graph
+"""
 def find_connected_components(edges, num_nodes):
     G = nx.DiGraph()
     G.add_nodes_from(range(num_nodes))
@@ -40,14 +41,22 @@ def find_connected_components(edges, num_nodes):
 
     return sorted_components
 
+"""
+    Convert a partition (list of lists) into a hashable key (tuple of
+    frozensets).
+"""
 def partition_to_key(partition):
-    """Convert a partition (list of lists) into a hashable key (tuple of frozensets)."""
     return tuple(frozenset(subset) for subset in partition)
 
+"""
+    Efficiently map partitions to index numbers.
+"""
 def create_partition_dict(partitions):
-    """Efficiently map partitions to index numbers."""
     return {partition_to_key(partition): i for i, partition in enumerate(partitions)}
 
+"""
+    Create index for each possible edge links
+"""
 def create_edge_dict(num_nodes):
     edge_dict = {}
     count = 0
@@ -59,15 +68,19 @@ def create_edge_dict(num_nodes):
             count += 1
     return edge_dict
 
-def test_learn2decompose_approach(return_edge_links = True):
-    """Tests Learn2Decompose planning in BlockStackingPyBulletBlocksEnv()."""
+"""
+    Tests Learn2Decompose planning in BlockStackingPyBulletBlocksEnv().
+"""
+def test_learn2decompose_approach(return_edge_links=True):
 
-    np.random.seed(10)
+    np.random.seed(25)
 
     elements = [0, 1, 2, 3, 4, 5]
     # Generate all partitions and assign them fixed numbers
-    all_partitions = list(multiset_partitions(elements, m=None))  # k=None means any number of groups
-    
+    all_partitions = list(
+        multiset_partitions(elements, m=None)
+    )  # k=None means any number of groups
+
     print(all_partitions)
 
     edge_links_to_index = create_edge_dict(6)
@@ -103,10 +116,8 @@ def test_learn2decompose_approach(return_edge_links = True):
 
     # Number of distinct demonstrations to generate scene data from
     num_demonstrations = 100
-
-    all_demonstrations = []
     for demo in range(num_demonstrations):
-        print('START')
+        print("START")
         seed = np.random.randint(0, 1000)
         rand_index = np.random.randint(0, len(init_configurations))
         init_piles = init_configurations[rand_index]
@@ -118,11 +129,8 @@ def test_learn2decompose_approach(return_edge_links = True):
             "init_piles": init_piles,
             "goal_piles": goal_pile,
         }
-        
-        obs, info = env.reset(
-            seed = seed,
-            options = scene_init
-        )
+
+        obs, info = env.reset(seed=seed, options=scene_init)
 
         init_state = env.get_state()
         init_graph = init_state.to_observation()
@@ -133,7 +141,7 @@ def test_learn2decompose_approach(return_edge_links = True):
         connected_components = find_connected_components(edge_links, len(nodes) - 1)
         scene_subgraph_id = partition_dict[partition_to_key(connected_components)]
         previous_unique_parition_id = scene_subgraph_id
-        
+
         if return_edge_links:
             for edge_link in edge_links:
                 demonstration.append(edge_links_to_index[tuple(edge_link)])
@@ -144,7 +152,7 @@ def test_learn2decompose_approach(return_edge_links = True):
 
         planner.reset(obs, info)
 
-        print('Running demo: ', demo)
+        print("Running demo: ", demo)
         for _ in range(10000):  # should terminate earlier
             action = planner.step(obs)
             obs, reward, done, _, _ = env.step(action)
@@ -170,13 +178,17 @@ def test_learn2decompose_approach(return_edge_links = True):
                 break
         else:
             assert False, "Goal not reached"
-        
+
         demonstration.append(-2)
         if return_edge_links:
-            with open("edge_links.txt", "a", encoding = "utf-8") as file:
-                file.write(", ".join(map(str, demonstration)) + "\n")  # Joins without extra comma
+            with open("edge_links.txt", "a", encoding="utf-8") as file:
+                file.write(
+                    ", ".join(map(str, demonstration)) + "\n"
+                )  # Joins without extra comma
         else:
             with open("partitions.txt", "a", encoding="utf-8") as file:
-                file.write(", ".join(map(str, demonstration)) + "\n")  # Joins without extra comma
-    
+                file.write(
+                    ", ".join(map(str, demonstration)) + "\n"
+                )  # Joins without extra comma
+
     env.close()
