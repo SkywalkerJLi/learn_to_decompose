@@ -138,7 +138,7 @@ def test_learn2decompose_approach(return_edge_links=True):
         edge_links = init_graph.edge_links
         demonstration = []
 
-        connected_components = find_connected_components(edge_links, len(nodes) - 1)
+        connected_components = find_connected_components(edge_links, len(nodes) - 1) # subtract one node for the robot's pose
         scene_subgraph_id = partition_dict[partition_to_key(connected_components)]
         previous_unique_parition_id = scene_subgraph_id
 

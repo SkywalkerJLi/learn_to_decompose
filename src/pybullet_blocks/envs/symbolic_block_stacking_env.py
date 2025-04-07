@@ -187,18 +187,13 @@ class SymbolicBlockStackingPyBulletBlocksEnv(
 
     def get_state(self) -> SymbolicBlockStackingPyBulletBlocksState:
         block_states = []
-        active_block_ids_list = list(self.active_block_ids)
-        # print("active list")
-        # print(active_block_ids_list)
         stack_list = []
-        # print("-----------------")
         for block_id_1 in self.active_block_ids:
             block_pose_1 = get_pose(block_id_1, self.physics_client_id)
             letter = self._block_id_to_letter[block_id_1]
             held = bool(self.current_held_object_id == block_id_1)
             on = None
             for block_id_2 in self.active_block_ids:
-                # print(block_id_1, block_id_2)
                 if block_id_1 != block_id_2:
                     block_pose_2 = get_pose(block_id_2, self.physics_client_id)
                     top_on_bottom = check_body_collisions(
