@@ -322,10 +322,12 @@ class BaseSceneDescription:
         return (
             self.table_pose.position[0]
             + self.table_half_extents[0]
-            - self.target_half_extents[0],
+            - self.target_half_extents[0]
+            - 0.05,
             self.table_pose.position[1]
             + self.table_half_extents[1]
-            - self.target_half_extents[1],
+            - self.target_half_extents[1]
+            - 0.05,
             self.table_pose.position[2]
             + self.table_half_extents[2]
             + self.target_half_extents[2],
