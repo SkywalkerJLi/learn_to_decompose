@@ -18,12 +18,11 @@ optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5)
 loss_fn = torch.nn.BCEWithLogitsLoss()
 
 # Train loop
-epochs = 1000
-#model.train()
+epochs = 5000
+model.train()
 for epoch in range(epochs):
     total_loss = 0
     for data in loader:
-        print()
         optimizer.zero_grad()
 
         out = model(data.x, data.edge_index, data.batch)  # shape: [total_nodes]
@@ -41,7 +40,6 @@ for epoch in range(epochs):
         total_loss += loss.item()
     
     if epoch % 10 == 0:
-        # More comprehensive save
         checkpoint = {
             'epoch': epoch,
             'model_state_dict': model.state_dict(),

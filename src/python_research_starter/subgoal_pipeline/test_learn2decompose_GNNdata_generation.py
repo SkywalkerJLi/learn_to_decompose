@@ -80,7 +80,7 @@ def is_subset(list1, list2):
 """
 def test_learn2decompose_approach(return_edge_links=True):
 
-    np.random.seed(27)
+    np.random.seed(62)
 
     elements = [0, 1, 2, 3, 4, 5]
     # Generate all partitions and assign them fixed numbers
@@ -95,7 +95,7 @@ def test_learn2decompose_approach(return_edge_links=True):
 
     partition_dict = create_partition_dict(all_partitions)
 
-    env = SymbolicBlockStackingPyBulletBlocksEnv(use_gui=True)
+    env = SymbolicBlockStackingPyBulletBlocksEnv(use_gui=False)
     sim = SymbolicBlockStackingPyBulletBlocksEnv(env.scene_description, use_gui=False)
 
     # from gymnasium.wrappers import RecordVideo
@@ -125,7 +125,7 @@ def test_learn2decompose_approach(return_edge_links=True):
     ground_truth_subgoal_filepath = ["ab.pkl", "abc.pkl", "abcd.pkl", "abcde.pkl", "abcdef.pkl"]
 
     # Number of distinct demonstrations to generate scene data from
-    num_demonstrations = 50
+    num_demonstrations = 100
 
     for demo in range(num_demonstrations):
 
