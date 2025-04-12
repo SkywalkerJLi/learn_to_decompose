@@ -80,7 +80,7 @@ def is_subset(list1, list2):
 """
 def test_learn2decompose_approach(return_edge_links=True):
 
-    np.random.seed(62)
+    np.random.seed(168)
 
     elements = [0, 1, 2, 3, 4, 5]
     # Generate all partitions and assign them fixed numbers
