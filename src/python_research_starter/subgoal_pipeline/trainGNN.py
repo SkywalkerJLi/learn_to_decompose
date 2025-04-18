@@ -7,30 +7,21 @@ from torch.utils.data import Subset
 
 # Load data
 dataset = GraphPairDataset("dataset.pkl")
+dataset = GraphPairDataset("dataset_optimal.pkl")
 print(len(dataset))
-
-# Constants
-# x1_count = (dataset[0].x[:, -1] == 0).sum().item()
-# N_GRAPH1 = x1_count
 
 # Model and datapipeline initialization
 loader = DataLoader(dataset, batch_size=16, shuffle=True)
 
 # Small Sample Testing
-single_sample_dataset = Subset(dataset, [1, 2, 3, 4])  # Just the first five samples
-print(single_sample_dataset)
-single_loader = DataLoader(single_sample_dataset, batch_size=1, shuffle=False)
+# single_sample_dataset = Subset(dataset, [1, 2, 3, 4])  # Just the first five samples
+# print(single_sample_dataset)
+# single_loader = DataLoader(single_sample_dataset, batch_size=1, shuffle=False)
 
 in_channels = dataset[0].x.size(1)
-print(in_channels)
 hidden_channels = 64
-model = get_model("gat", in_channels, hidden_channels, heads=4)
-
-# small_in_channels = 9
-# small_model = get_model("gcn", small_in_channels, hidden_channels, heads=4)
-
 edge_attr_channels = dataset[0].edge_attr.size(1)
-print(edge_attr_channels)
+
 mp_model = get_model("mpnn", in_channels, hidden_channels, edge_attr_channels = edge_attr_channels)
 
 # Data preprocessing
@@ -47,14 +38,11 @@ print(f"Positive ratio: {total_ones / (total_ones + total_zeros):.4f}")
 
 pos_weight = torch.tensor([total_zeros / total_ones])
 loss_fn = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-# loss_fn = torch.nn.BCEWithLogitsLoss()
-# optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 mp_optimizer = torch.optim.Adam(mp_model.parameters(), lr=1e-3)
 
 
 # Train loop
-epochs = 1000
-# model.train()
+epochs = 200
 mp_model.train()
 
 # relevant_indicies = torch.tensor([1, 2, 3, 4, 5, 6, 7, 8, 10])
@@ -109,17 +97,14 @@ for epoch in range(epochs):
         all_targets.extend(targets)
 
     f1 = f1_score(all_targets, all_preds)
-    # print("predictions: ", all_preds)
-    if epoch % 10 == 0:
-        print(f"Epoch {epoch+1}: Loss = {total_loss / len(loader):.4f}, F1 = {f1:.4f}")
-    
-#     # if epoch % 10 == 0:
-#     #     checkpoint = {
-#     #         'epoch': epoch,
-#     #         'model_state_dict': model.state_dict(),
-#     #         'optimizer_state_dict': optimizer.state_dict(),
-#     #         'loss': total_loss,
-#     #     }
-#     #     torch.save(checkpoint, "gat_graph_importance_checkpoint.pt")
 
-#     #     print(f"Epoch {epoch+1}: Loss = {total_loss / len(loader):.4f}, F1 = {f1:.4f}")
+    if epoch % 10 == 0:
+        checkpoint = {
+            'epoch': epoch,
+            'model_state_dict': mp_model.state_dict(),
+            'optimizer_state_dict': mp_optimizer.state_dict(),
+            'loss': total_loss,
+        }
+        torch.save(checkpoint, "mp_graph_importance_checkpoint.pt")
+
+        print(f"Epoch {epoch+1}: Loss = {total_loss / len(loader):.4f}, F1 = {f1:.4f}")

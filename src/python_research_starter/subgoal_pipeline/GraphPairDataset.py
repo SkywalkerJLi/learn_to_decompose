@@ -19,17 +19,15 @@ class GraphPairDataset(Dataset):
         # print(state_data)
         # print(graph.edge_links)
         # print(graph.edges)
+        # print(subgoal)
+        # print(labels)
 
-        state_edge_links = torch.zeros((graph.edge_links.shape[0] * 2, graph.edge_links.shape[1]))
-        edge_attr_state = torch.zeros((state_edge_links.size(0), 4), dtype=torch.float)
-
-        for i, edge_link in enumerate(graph.edge_links):
-            state_edge_links[i * 2] = torch.tensor(edge_link)
-            reversed = edge_link[::-1].copy()
-            state_edge_links[i * 2 + 1] = torch.tensor(reversed)
-
-            edge_attr_state[i * 2][0] = 1 # the first element in the index is above the second
-            edge_attr_state[i * 2 + 1][1] = 1 # the second element in the index is below the first
+        # Add indicator for each node in the state data if it is in the subgoal data
+        # Also add indicator for which goal block is on top of the other for the edge attr
+        for i, edge_link in enumerate(subgoal.edge_links):
+            first_node, second_node = edge_link[0], edge_link[1]
+            state_data[first_node][11] = 1
+            state_data[second_node][11] = 1
 
         subgoal_edge_links = torch.zeros((subgoal.edge_links.shape[0] * 2, subgoal.edge_links.shape[1]))
         edge_attr_subgoal = torch.zeros((subgoal_edge_links.size(0), 4), dtype=torch.float)
@@ -42,23 +40,40 @@ class GraphPairDataset(Dataset):
             edge_attr_subgoal[i * 2][2] = 1 # the first element in the subgoal index is above the second
             edge_attr_subgoal[i * 2 + 1][3] = 1 # the second element in the subgoal index is below the first
 
+        # If no edge links in scene graph, return just the subgoals
+        if len(graph.edge_links) <= 0:
+           # Pad both edge index and edge attr so input is the same for model
+            edge_index = torch.nn.functional.pad(subgoal_edge_links, (0, 20 - subgoal_edge_links.size(1)), "constant")
+            edge_index = edge_index.long()
+
+            # Add extra rows
+            pad_rows = 20 - edge_attr_subgoal.size(0)
+            new_rows = torch.zeros((pad_rows, edge_attr_subgoal.size(1)))
+            edge_attr = torch.cat([edge_attr_subgoal, new_rows], dim=0)
+
+            y = torch.tensor(labels, dtype=torch.float)
+
+            data = Data(x=state_data, edge_index=edge_index, edge_attr= edge_attr, y=y)
+
+            return data
+        
+        state_edge_links = torch.zeros((graph.edge_links.shape[0] * 2, graph.edge_links.shape[1]))
+        edge_attr_state = torch.zeros((state_edge_links.size(0), 4), dtype=torch.float)
+
+        for i, edge_link in enumerate(graph.edge_links):
+            state_edge_links[i * 2] = torch.tensor(edge_link)
+            reversed = edge_link[::-1].copy()
+            state_edge_links[i * 2 + 1] = torch.tensor(reversed)
+
+            edge_attr_state[i * 2][0] = 1 # the first element in the index is above the second
+            edge_attr_state[i * 2 + 1][1] = 1 # the second element in the index is below the first
+
 
         # print(state_edge_links)
         # print(edge_attr_state)
         # print(subgoal_edge_links)
         # print(edge_attr_subgoal)
-
-
-        # Add indicator for each node in the state data if it is in the subgoal data
-        # Also add indicator for which goal block is on top of the other for the edge attr
-        for i, edge_link in enumerate(subgoal.edge_links):
-            first_node, second_node = edge_link[0], edge_link[1]
-            state_data[first_node][11] = 1
-            state_data[second_node][11] = 1
             
-
-        
-
         state_edge_links_rows = state_edge_links.view(state_edge_links.size(0), -1)
         subgoal_edge_links_rows = subgoal_edge_links.view(subgoal_edge_links.size(0), -1)
 

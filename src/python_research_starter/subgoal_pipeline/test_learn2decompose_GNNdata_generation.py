@@ -80,7 +80,7 @@ def is_subset(list1, list2):
 """
 def test_learn2decompose_approach(return_edge_links=True):
 
-    np.random.seed(168)
+    np.random.seed(903)
 
     elements = [0, 1, 2, 3, 4, 5]
     # Generate all partitions and assign them fixed numbers
@@ -110,7 +110,7 @@ def test_learn2decompose_approach(return_edge_links=True):
 
     # Create the planner.
     planner = TaskThenMotionPlanner(
-        TYPES, PREDICATES, perceiver, operators, skills, planner_id="pyperplan"
+        TYPES, PREDICATES, perceiver, operators, skills, planner_id="fd-opt"
     )
 
     # Run an episode.
@@ -125,12 +125,12 @@ def test_learn2decompose_approach(return_edge_links=True):
     ground_truth_subgoal_filepath = ["ab.pkl", "abc.pkl", "abcd.pkl", "abcde.pkl", "abcdef.pkl"]
 
     # Number of distinct demonstrations to generate scene data from
-    num_demonstrations = 100
+    num_demonstrations = 200
 
     for demo in range(num_demonstrations):
 
         # Append new demonstration to training dataset
-        file_path = "dataset.pkl"
+        file_path = "val_dataset_optimal.pkl"
         if os.path.exists(file_path):
             with open(file_path, "rb") as f:
                 training_dataset = pickle.load(f)
@@ -243,7 +243,7 @@ def test_learn2decompose_approach(return_edge_links=True):
         else:
             assert False, "Goal not reached"
 
-        with open("dataset.pkl", "wb") as f:
+        with open("val_dataset_optimal.pkl", "wb") as f:
             pickle.dump(training_dataset, f)
         
     env.close()
