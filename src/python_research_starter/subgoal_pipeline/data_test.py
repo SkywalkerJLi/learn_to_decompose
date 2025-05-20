@@ -8,7 +8,9 @@ from torch.utils.data import Subset
 # Load data
 dataset_optimal = GraphPairDataset("val_dataset_optimal.pkl")
 print(len(dataset_optimal))
-# dataset = GraphPairDataset("dataset.pkl")
+print(dataset_optimal[0].x.size(1))
+dataset = GraphPairDataset("dataset.pkl")
+print(dataset[10].edge_attr.size(1))
 # for i in range(10):
 #     data = dataset_optimal.__getitem__(i)
 #     print(data.x)

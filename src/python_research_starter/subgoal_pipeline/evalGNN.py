@@ -4,7 +4,7 @@ from python_research_starter.subgoal_pipeline.GNN_Models import get_model
 from python_research_starter.subgoal_pipeline.GraphPairDataset import GraphPairDataset
 
 # Load validation data
-dataset = GraphPairDataset("val_dataset_optimal.pkl")
+dataset = GraphPairDataset("src/python_research_starter/subgoal_pipeline/datasets/val_dataset_optimal.pkl")
 print(len(dataset))
 
 # Model and datapipeline initialization
@@ -17,7 +17,7 @@ edge_attr_channels = dataset[0].edge_attr.size(1)
 mp_model = get_model("mpnn", in_channels, hidden_channels, edge_attr_channels = edge_attr_channels)
 
 # Load the saved model weights
-mp_model.load_state_dict(torch.load("mp_graph_importance_checkpoint.pt")['model_state_dict'])
+mp_model.load_state_dict(torch.load("/Users/skywalkerli/Desktop/Princeton_2024_2025/Research/learn-to-decompose/src/python_research_starter/subgoal_pipeline/saved_models/mp_graph_importance_checkpoint.pt")['model_state_dict'])
 mp_model.eval()  # Set model to evaluation mode
 
 # Data preprocessing
@@ -80,8 +80,8 @@ for i in range(min(5, len(dataset))):  # Show first 5 examples
         importance_scores = torch.sigmoid(out)
         
     print(f"\nExample {i+1}:")
-    # print("Input graph: ", data.x)
-    # print("Input edge_links", data.edge_index)
+    print("Input graph: ", data.x)
+    print("Input edge_links", data.edge_index)
     print(f"Node importance scores: {importance_scores.numpy()}")
     print(f"One-hot scores: {importance_scores.numpy() > 0.5}" )
     print(f"True labels: {data.y.numpy()}")

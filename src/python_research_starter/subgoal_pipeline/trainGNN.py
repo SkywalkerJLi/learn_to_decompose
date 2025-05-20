@@ -6,8 +6,7 @@ from sklearn.metrics import f1_score
 from torch.utils.data import Subset
 
 # Load data
-dataset = GraphPairDataset("dataset.pkl")
-dataset = GraphPairDataset("dataset_optimal.pkl")
+dataset = GraphPairDataset("src/python_research_starter/subgoal_pipeline/datasets/dataset_optimal.pkl")
 print(len(dataset))
 
 # Model and datapipeline initialization

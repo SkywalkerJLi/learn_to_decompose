@@ -18,6 +18,24 @@ from pybullet_blocks.planning_models.perception import (
     SymbolicBlockStackingPyBulletBlocksPerceiver,
 )
 
+# GNN
+import torch
+from python_research_starter.subgoal_pipeline.GNN_Models import get_model
+from python_research_starter.subgoal_pipeline.GraphPairDataset import GraphPairDataset
+
+print(os.getcwd())
+in_channels = 18
+hidden_channels = 64
+edge_attr_channels = 4
+
+mp_model = get_model("mpnn", in_channels, hidden_channels, edge_attr_channels = edge_attr_channels)
+
+# Load the saved model weights
+mp_model.load_state_dict(
+    torch.load("/Users/skywalkerli/Desktop/Princeton_2024_2025/Research/learn-to-decompose/src/python_research_starter/subgoal_pipeline/saved_models/mp_graph_importance_checkpoint.pt")['model_state_dict'])
+mp_model.eval()  # Set model to evaluation mode
+
+
 """
     Given directed edge links and list of nodes, return the directed connected components of the graph
 """
@@ -74,13 +92,12 @@ def create_edge_dict(num_nodes):
 """
 def is_subset(list1, list2):
     return set(list1).issubset(set(list2))
-"""
 
+
+"""
     Tests Learn2Decompose planning in BlockStackingPyBulletBlocksEnv().
-"""
+""" 
 def test_learn2decompose_approach(return_edge_links=True):
-
-    np.random.seed(903)
 
     elements = [0, 1, 2, 3, 4, 5]
     # Generate all partitions and assign them fixed numbers
@@ -88,10 +105,10 @@ def test_learn2decompose_approach(return_edge_links=True):
         multiset_partitions(elements, m=None)
     )  # k=None means any number of groups
 
-    print(all_partitions)
+    # print(all_partitions)
 
     edge_links_to_index = create_edge_dict(6)
-    print(edge_links_to_index)
+    # print(edge_links_to_index)
 
     partition_dict = create_partition_dict(all_partitions)
 
@@ -122,20 +139,11 @@ def test_learn2decompose_approach(return_edge_links=True):
     goal_pile = [["A", "B", "C", "D", "E", "F"]]
 
     common_edge_link_patterns = [[1], [1, 11], [1, 11, 19], [1, 11, 19, 25], [1, 11, 19, 25,29]]
-    ground_truth_subgoal_filepath = ["ab.pkl", "abc.pkl", "abcd.pkl", "abcde.pkl", "abcdef.pkl"]
 
     # Number of distinct demonstrations to generate scene data from
     num_demonstrations = 1
 
     for demo in range(num_demonstrations):
-
-        # Append new demonstration to training dataset
-        # file_path = "val_dataset_optimal.pkl"
-        # if os.path.exists(file_path):
-        #     with open(file_path, "rb") as f:
-        #         training_dataset = pickle.load(f)
-        # else:
-        #     training_dataset = []
 
         print("START")
         seed = np.random.randint(0, 1000)
@@ -165,11 +173,11 @@ def test_learn2decompose_approach(return_edge_links=True):
 
         init_state = env.get_state()
         init_graph = init_state.to_observation()
-        print(init_state)
-        print(init_graph)
+        # print(init_state)
+        # print(init_graph)
         nodes = init_graph.nodes
         edge_links = init_graph.edge_links
-        print(edge_links)
+        # print(edge_links)
         edge_index_list = []
         for edge_link in edge_links:
             edge_index_list.append(edge_links_to_index[tuple(edge_link)])
@@ -180,25 +188,51 @@ def test_learn2decompose_approach(return_edge_links=True):
 
         ### Only increment index if A is on the bottom, otherwise the robot will have to rebuild anyways from scratch
         if nodes[1][10] == -1:
+            print(edge_index_list)
             while is_subset(common_edge_link_patterns[subgoal_index], edge_index_list):
                 subgoal_index += 1
 
         print(subgoal_index)
-        demonstration = []
 
-        connected_components = find_connected_components(edge_links, len(nodes) - 1) # subtract one node for the robot's pose
-        scene_subgraph_id = partition_dict[partition_to_key(connected_components)]
-        previous_unique_parition_id = scene_subgraph_id
+        ground_truth_subgoal_filepath = ["../subgoal_pipeline/subgoals/ab.pkl", 
+                                         "../subgoal_pipeline/subgoals/abc.pkl", 
+                                         "../subgoal_pipeline/subgoals/abcd.pkl", 
+                                         "../subgoal_pipeline/subgoals/abcde.pkl", 
+                                         "../subgoal_pipeline/subgoals/abcdef.pkl"]
+        
+        file_path = ground_truth_subgoal_filepath[subgoal_index]
+        with open(file_path, "rb") as f:
+            subgoal_graph = pickle.load(f)
 
-        if return_edge_links:
-            for edge_link in edge_links:
-                demonstration.append(edge_links_to_index[tuple(edge_link)])
-            demonstration.append(-1)
-        else:
-            demonstration.append(scene_subgraph_id)
-            demonstration.append(-1)
+        ### GNN CODE ###
+        scene_data = GraphPairDataset.convert_data(init_graph, subgoal_graph)
 
-        planner.reset(obs, info)
+        # Forward pass
+        with torch.no_grad():
+            out = mp_model(scene_data.x, scene_data.edge_index, scene_data.edge_attr)
+            importance_scores = torch.sigmoid(out)
+
+        print("Input graph: ", scene_data.x)
+        print("Input edge_links", scene_data.edge_index)
+        print(f"Node importance scores: {importance_scores.numpy()}")
+        print(f"One-hot scores: {importance_scores.numpy() > 0.5}" )
+
+
+        # demonstration = []
+
+        # connected_components = find_connected_components(edge_links, len(nodes) - 1) # subtract one node for the robot's pose
+        # scene_subgraph_id = partition_dict[partition_to_key(connected_components)]
+        # previous_unique_parition_id = scene_subgraph_id
+
+        # if return_edge_links:
+        #     for edge_link in edge_links:
+        #         demonstration.append(edge_links_to_index[tuple(edge_link)])
+        #     demonstration.append(-1)
+        # else:
+        #     demonstration.append(scene_subgraph_id)
+        #     demonstration.append(-1)
+
+        # planner.reset(obs, info)
 
         # print("Running demo: ", demo)
         # for _ in range(10000):  # should terminate earlier
