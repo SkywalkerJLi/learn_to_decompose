@@ -103,7 +103,7 @@ def test_learn2decompose_approach(return_edge_links=True):
 
     # Create the planner.
     planner = TaskThenMotionPlanner(
-        TYPES, PREDICATES, perceiver, operators, skills, planner_id="pyperplan"
+        TYPES, PREDICATES, perceiver, operators, skills, planner_id="fd-opt"
     )
 
     # Run an episode.

@@ -1,7 +1,7 @@
 """Perception models."""
 
 import abc
-from typing import Any
+from typing import Any, Optional
 
 import gymnasium as gym
 import numpy as np
@@ -301,6 +301,8 @@ class SymbolicBlockStackingPyBulletBlocksPerceiver(
         self,
         obs: gym.spaces.GraphInstance,
         info: dict[str, Any],
+        importance_scores: Optional[list] = None,
+        threshold: Optional[float] = None,
     ) -> tuple[set[Object], set[GroundAtom], set[GroundAtom]]:
         self._active_blocks = set()
         assert isinstance(self._sim, SymbolicBlockStackingPyBulletBlocksEnv)
@@ -309,8 +311,10 @@ class SymbolicBlockStackingPyBulletBlocksPerceiver(
         )
         pybullet_id_to_obj = {v: k for k, v in self._pybullet_ids.items()}
         for active_block_id in self._sim.active_block_ids:
-            active_block = pybullet_id_to_obj[active_block_id]
-            self._active_blocks.add(active_block)
+            """ A block has to be active and important to be added to the set"""
+            if importance_scores is None or importance_scores[active_block_id - 3] > threshold:
+                active_block = pybullet_id_to_obj[active_block_id]
+                self._active_blocks.add(active_block)
         return super().reset(obs, info)
 
     def _get_objects(self) -> set[Object]:

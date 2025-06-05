@@ -6,7 +6,7 @@ import os
 import networkx as nx
 import numpy as np
 from sympy.utilities.iterables import multiset_partitions
-from task_then_motion_planning.planning import TaskThenMotionPlanner
+from python_research_starter.planners.importance_planning import TaskThenMotionPlannerImportance
 
 from pybullet_blocks.envs.symbolic_block_stacking_env import (
     SymbolicBlockStackingPyBulletBlocksEnv,
@@ -112,7 +112,7 @@ def test_learn2decompose_approach(return_edge_links=True):
 
     partition_dict = create_partition_dict(all_partitions)
 
-    env = SymbolicBlockStackingPyBulletBlocksEnv(use_gui=False)
+    env = SymbolicBlockStackingPyBulletBlocksEnv(use_gui=True)
     sim = SymbolicBlockStackingPyBulletBlocksEnv(env.scene_description, use_gui=False)
 
     # from gymnasium.wrappers import RecordVideo
@@ -126,7 +126,7 @@ def test_learn2decompose_approach(return_edge_links=True):
     }
 
     # Create the planner.
-    planner = TaskThenMotionPlanner(
+    planner = TaskThenMotionPlannerImportance(
         TYPES, PREDICATES, perceiver, operators, skills, planner_id="fd-opt"
     )
 
@@ -200,6 +200,12 @@ def test_learn2decompose_approach(return_edge_links=True):
                                          "../subgoal_pipeline/subgoals/abcde.pkl", 
                                          "../subgoal_pipeline/subgoals/abcdef.pkl"]
         
+        subgoal_piles = [['A', 'B'], 
+                         ['A', 'B', 'C'], 
+                         ['A', 'B', 'C', 'D'], 
+                         ['A', 'B', 'C', 'D', 'E'], 
+                         ['A', 'B', 'C', 'D', 'E', 'F'],]
+        
         file_path = ground_truth_subgoal_filepath[subgoal_index]
         with open(file_path, "rb") as f:
             subgoal_graph = pickle.load(f)
@@ -217,78 +223,22 @@ def test_learn2decompose_approach(return_edge_links=True):
         print(f"Node importance scores: {importance_scores.numpy()}")
         print(f"One-hot scores: {importance_scores.numpy() > 0.5}" )
 
+        # Given the importance scores, create a new goal pile with a reduced subset of blocks
+        # The new goal for the planner is now the subgoal, rather than the entire goal
+        new_info = {'goal_piles': [subgoal_piles[subgoal_index]]}
 
-        # demonstration = []
+        importance_thresh = 0.9
+        planner.reset(obs, new_info, importance_scores.numpy(), importance_thresh)
 
-        # connected_components = find_connected_components(edge_links, len(nodes) - 1) # subtract one node for the robot's pose
-        # scene_subgraph_id = partition_dict[partition_to_key(connected_components)]
-        # previous_unique_parition_id = scene_subgraph_id
+        print("Running demo: ", demo)
+        for _ in range(10000):  # should terminate earlier
+            action = planner.step(obs)
+            obs, reward, done, _, _ = env.step(action)
 
-        # if return_edge_links:
-        #     for edge_link in edge_links:
-        #         demonstration.append(edge_links_to_index[tuple(edge_link)])
-        #     demonstration.append(-1)
-        # else:
-        #     demonstration.append(scene_subgraph_id)
-        #     demonstration.append(-1)
+            if done:  # goal reached!
+                assert reward > 0
+                break
+        else:
+            assert False, "Goal not reached"
 
-        # planner.reset(obs, info)
-
-        # print("Running demo: ", demo)
-        # for _ in range(10000):  # should terminate earlier
-        #     action = planner.step(obs)
-        #     obs, reward, done, _, _ = env.step(action)
-        #     state = env.get_state()
-        #     scene_graph = state.to_observation()
-        #     nodes = scene_graph.nodes
-        #     edge_links = scene_graph.edge_links
-
-        #     connected_components = find_connected_components(edge_links, len(nodes) - 1)
-        #     scene_subgraph_id = partition_dict[partition_to_key(connected_components)]
-
-        #     if done:  # goal reached!
-        #         assert reward > 0
-        #         break
-
-        #     if scene_subgraph_id != previous_unique_parition_id and subgoal_index < len(common_edge_link_patterns): # ensure that no duplicate states are considered
-        #         edge_index_list = []
-        #         for edge_link in edge_links:
-        #             edge_index_list.append(edge_links_to_index[tuple(edge_link)])
-        #         edge_index_list.sort()
-                
-        #         # If the scene graph is at the new subgoal, store the entire scene graph and determine the important object
-        #         important_objects_list = np.zeros(len(nodes) - 1)
-        #         print(common_edge_link_patterns[subgoal_index])
-        #         if nodes[1][10] == -1 and is_subset(common_edge_link_patterns[subgoal_index], edge_index_list):
-        #             print('is subset')
-        #             for i, (prev_node, curr_node) in enumerate(zip(prev_subgoal_graph.nodes[1:], nodes[1:])):
-        #                 print("Node: ", chr(int(prev_node[8] + 97)).upper())
-        #                 print("Previously node is on: ", prev_node[10])
-        #                 print("Currently node is on: ", curr_node[10])
-        #                 print("Previously node is at: ", prev_node[1])
-        #                 print("Currently node is at: ", curr_node[1])
-        #                 # If the node changed what block it is on top of or its state in any way, it is important 
-        #                 if(prev_node[10] != curr_node[10]) or (abs(prev_node[1] - curr_node[1]) > 0.075):
-        #                     important_objects_list[i] = 1
-                    
-        #             # Append new demonstration to training dataset
-        #             file_path = ground_truth_subgoal_filepath[subgoal_index]
-        #             with open(file_path, "rb") as f:
-        #                 subgoal = pickle.load(f)
-                    
-        #             print("THINGS TO STORE AS TRAINING DATA")
-        #             # print(subgoal)
-        #             # print(prev_subgoal_graph)
-        #             print(important_objects_list)
-        #             training_dataset.append((prev_subgoal_graph, important_objects_list, subgoal))
-        #             prev_subgoal_graph = scene_graph
-        #             subgoal_index += 1
-
-        #         previous_unique_parition_id = scene_subgraph_id
-        # else:
-        #     assert False, "Goal not reached"
-
-        # with open("val_dataset_optimal.pkl", "wb") as f:
-        #     pickle.dump(training_dataset, f)
-        
     env.close()
