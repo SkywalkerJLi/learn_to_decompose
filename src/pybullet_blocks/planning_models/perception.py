@@ -311,7 +311,7 @@ class SymbolicBlockStackingPyBulletBlocksPerceiver(
         )
         pybullet_id_to_obj = {v: k for k, v in self._pybullet_ids.items()}
         for active_block_id in self._sim.active_block_ids:
-            """ A block has to be active and important to be added to the set"""
+            """ A block has to be active and important or specified in the goal to be added to the set"""
             if importance_scores is None or importance_scores[active_block_id - 3] > threshold:
                 active_block = pybullet_id_to_obj[active_block_id]
                 self._active_blocks.add(active_block)

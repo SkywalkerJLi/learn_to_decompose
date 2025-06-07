@@ -127,7 +127,11 @@ def test_learn2decompose_approach(return_edge_links=True):
 
     # Create the planner.
     planner = TaskThenMotionPlannerImportance(
-        TYPES, PREDICATES, perceiver, operators, skills, planner_id="fd-opt"
+        TYPES, PREDICATES, perceiver, operators, skills, planner_id="fd-sat"
+    )
+
+    planner_baseline = TaskThenMotionPlannerImportance(
+        TYPES, PREDICATES, perceiver, operators, skills, planner_id="fd-sat"
     )
 
     # Run an episode.
@@ -150,7 +154,7 @@ def test_learn2decompose_approach(return_edge_links=True):
         rand_index = np.random.randint(0, len(init_configurations))
         init_piles = init_configurations[rand_index]
         for pile in init_piles:
-            random.shuffle(pile)
+            np.random.shuffle(pile)
         print(init_piles)
 
         scene_init = {
@@ -228,11 +232,18 @@ def test_learn2decompose_approach(return_edge_links=True):
         new_info = {'goal_piles': [subgoal_piles[subgoal_index]]}
 
         importance_thresh = 0.9
+
+        # If the blocks are in the goal pile, they are important
+        for block in subgoal_piles[subgoal_index]:
+            importance_scores[ord(block) - ord('A')] = 1
+        print(importance_scores.numpy())
         planner.reset(obs, new_info, importance_scores.numpy(), importance_thresh)
+        planner_baseline.reset(obs, new_info)
 
         print("Running demo: ", demo)
         for _ in range(10000):  # should terminate earlier
             action = planner.step(obs)
+            #action = planner_baseline.step(obs)
             obs, reward, done, _, _ = env.step(action)
 
             if done:  # goal reached!

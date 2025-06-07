@@ -48,12 +48,12 @@ class TaskThenMotionPlannerImportance(Generic[_Observation, _Action]):
         self._current_operator: GroundOperator | None = None
         self._current_skill: Skill | None = None
 
-    def reset(self, obs: _Observation, info: dict[str, Any], important_scores: Optional[list] = None, threshold: Optional[float] = None) -> None:
+    def reset(self, obs: _Observation, info: dict[str, Any], importance_scores: Optional[list] = None, threshold: Optional[float] = None) -> None:
         """Reset on a new task instance."""
         """Greedily rerun the planner with a lower threshold until a feasible plan is produced"""
         plan_str = None
         while plan_str is None:
-            objects, atoms, goal = self._perceiver.reset(obs, info, important_scores, threshold)
+            objects, atoms, goal = self._perceiver.reset(obs, info, importance_scores, threshold)
             print("important objects")
             print(objects)
             print("atoms")
@@ -66,13 +66,20 @@ class TaskThenMotionPlannerImportance(Generic[_Observation, _Action]):
             plan_str = run_pddl_planner(
                 str(self._domain), str(self._current_problem), planner=self._planner_id
             )
-            threshold *= 0.5
+            if threshold is not None:
+                threshold *= 0.25
+                if threshold < 0.001:
+                    threshold = 0
         assert plan_str is not None
         self._current_task_plan = parse_pddl_plan(
             plan_str, self._domain, self._current_problem
         )
-        print('task plan')
-        print(self._current_task_plan)
+        if importance_scores is None:
+            print('baseline')
+            print(self._current_task_plan)
+        else:
+            print('importance plan')
+            print(self._current_task_plan)
         self._current_operator = None
         self._current_skill = None
 
