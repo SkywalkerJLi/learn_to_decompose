@@ -237,8 +237,61 @@ def test_learn2decompose_approach(return_edge_links=True):
         for block in subgoal_piles[subgoal_index]:
             importance_scores[ord(block) - ord('A')] = 1
         print(importance_scores.numpy())
-        planner.reset(obs, new_info, importance_scores.numpy(), importance_thresh)
-        planner_baseline.reset(obs, new_info)
+
+        # Given the current scene graph and next subgoal, output the next scene graph with completed subgoal
+        # Leave all non important objects where they are
+        # If the next subgoal is the final goal, return done
+        def generate_scene_graph(current_graph, subgoal_index, goal):
+            with open(ground_truth_subgoal_filepath[subgoal_index], "rb") as f:
+                next_subgoal_graph = pickle.load(f)
+
+            scene_data = GraphPairDataset.convert_data(current_graph, next_subgoal_graph)
+
+            # Forward pass
+            with torch.no_grad():
+                out = mp_model(scene_data.x, scene_data.edge_index, scene_data.edge_attr)
+                importance_scores = torch.sigmoid(out)
+
+            # If the blocks are in the goal pile, they are important
+            for block in subgoal_piles[subgoal_index]:
+                importance_scores[ord(block) - ord('A')] = 1
+
+            # TODO 6/7/2025
+            # Place the important blocks in their correct location
+            # Important blocks are either blocks that need to be stacked, or blocks that need to be moved elsewhere
+            # Determine the blocks that need to be stacked based on the subgoal
+            # All other blocks should be placed in a free position
+            # Use sample_free_block_pose from base_env to do so
+            temp_pose = env.sample_free_block_pose(1)
+
+        # Given an array of length n, create n planners that take in the scene graph, new subgoal, and importance scores
+        # and output a plan
+
+        # Use lambda generators?
+        # TODO 6/7/2025
+        """
+                
+        from concurrent.futures import ProcessPoolExecutor
+
+        # Your CPU-heavy motion planning function
+        def generate_motion_plan(scene_graph, goal_state):
+            # Compute and return motion plan
+            ...
+
+        # List of (scene_graph, goal_state) input pairs
+        input_pairs = [(scene_graph1, goal_state1), (scene_graph2, goal_state2), ...]
+
+        # Wrapper function to unpack each input tuple
+        def wrapper(args):
+            return generate_motion_plan(*args)
+
+        with ProcessPoolExecutor() as executor:
+            results = list(executor.map(wrapper, input_pairs))
+
+        """
+
+        task_plan = planner.reset(obs, new_info, importance_scores.numpy(), importance_thresh)
+        task_plan_baseline = planner_baseline.reset(obs, new_info)
 
         print("Running demo: ", demo)
         for _ in range(10000):  # should terminate earlier

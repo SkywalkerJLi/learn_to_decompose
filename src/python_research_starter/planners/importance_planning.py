@@ -48,7 +48,7 @@ class TaskThenMotionPlannerImportance(Generic[_Observation, _Action]):
         self._current_operator: GroundOperator | None = None
         self._current_skill: Skill | None = None
 
-    def reset(self, obs: _Observation, info: dict[str, Any], importance_scores: Optional[list] = None, threshold: Optional[float] = None) -> None:
+    def reset(self, obs: _Observation, info: dict[str, Any], importance_scores: Optional[list] = None, threshold: Optional[float] = None) -> list[GroundOperator]:
         """Reset on a new task instance."""
         """Greedily rerun the planner with a lower threshold until a feasible plan is produced"""
         plan_str = None
@@ -82,6 +82,9 @@ class TaskThenMotionPlannerImportance(Generic[_Observation, _Action]):
             print(self._current_task_plan)
         self._current_operator = None
         self._current_skill = None
+
+        # return task plan
+        return self._current_task_plan
 
     def step(self, obs: _Observation) -> _Action:
         """Get an action to execute."""
