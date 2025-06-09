@@ -17,6 +17,7 @@ from pybullet_blocks.planning_models.perception import (
     TYPES,
     SymbolicBlockStackingPyBulletBlocksPerceiver,
 )
+from pybullet_helpers.geometry import Pose, get_pose, set_pose
 
 # GNN
 import torch
@@ -180,6 +181,7 @@ def test_learn2decompose_approach(return_edge_links=True):
         # print(init_state)
         # print(init_graph)
         nodes = init_graph.nodes
+        print(nodes)
         edge_links = init_graph.edge_links
         # print(edge_links)
         edge_index_list = []
@@ -208,7 +210,7 @@ def test_learn2decompose_approach(return_edge_links=True):
                          ['A', 'B', 'C'], 
                          ['A', 'B', 'C', 'D'], 
                          ['A', 'B', 'C', 'D', 'E'], 
-                         ['A', 'B', 'C', 'D', 'E', 'F'],]
+                         ['A', 'B', 'C', 'D', 'E', 'F']]
         
         file_path = ground_truth_subgoal_filepath[subgoal_index]
         with open(file_path, "rb") as f:
@@ -241,7 +243,9 @@ def test_learn2decompose_approach(return_edge_links=True):
         # Given the current scene graph and next subgoal, output the next scene graph with completed subgoal
         # Leave all non important objects where they are
         # If the next subgoal is the final goal, return done
-        def generate_scene_graph(current_graph, subgoal_index, goal):
+        def generate_scene_graph(current_graph, subgoal_index):
+            subgoal = subgoal_piles[subgoal_index]
+
             with open(ground_truth_subgoal_filepath[subgoal_index], "rb") as f:
                 next_subgoal_graph = pickle.load(f)
 
@@ -262,13 +266,47 @@ def test_learn2decompose_approach(return_edge_links=True):
             # Determine the blocks that need to be stacked based on the subgoal
             # All other blocks should be placed in a free position
             # Use sample_free_block_pose from base_env to do so
-            temp_pose = env.sample_free_block_pose(1)
+            # Sample free pose for first block
+
+            # Sample position for the first important block, checking in order
+            block_index = 0
+            for score in importance_scores:
+                if score > importance_thresh:
+                    importance_scores[block_index] = 0
+                    break
+                block_index += 1
+            
+            letter = subgoal[block_index]
+            block_id = env.letter_to_block_id[letter]
+            block_pose = env.sample_free_block_pose(block_id)
+            block_position = block_pose.position
+            block_height = 2 * env.scene_description.block_half_extents[2]
+            # Stack blocks in subgoal
+            for i, letter in enumerate(subgoal[block_index + 1:]):
+                dz = (i + 1) * block_height
+                position = np.add(block_position, (0, 0, dz))
+                block_id = env.letter_to_block_id[letter]
+                set_pose(block_id, Pose(tuple(position)), env.physics_client_id)
+
+            # For all remaining important blocks, sample a free block pose
+            for block_index, score in enumerate(importance_scores):
+                if score > importance_scores:
+                    letter = subgoal[block_index]
+                    block_id = env.letter_to_block_id[letter]
+                    block_pose = env.sample_free_block_pose(block_id)
+            
+            next_state = env.get_state()
+            next_graph = next_state.to_observation()
+
+            return next_graph
 
         # Given an array of length n, create n planners that take in the scene graph, new subgoal, and importance scores
         # and output a plan
 
         # Use lambda generators?
         # TODO 6/7/2025
+
+        scene_pairs = []
         """
                 
         from concurrent.futures import ProcessPoolExecutor
@@ -279,6 +317,7 @@ def test_learn2decompose_approach(return_edge_links=True):
             ...
 
         # List of (scene_graph, goal_state) input pairs
+        
         input_pairs = [(scene_graph1, goal_state1), (scene_graph2, goal_state2), ...]
 
         # Wrapper function to unpack each input tuple
