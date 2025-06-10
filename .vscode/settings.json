@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./src/pybullet-blocks/src"
+    ]
+}
