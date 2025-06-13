@@ -4,22 +4,23 @@ import random
 
 import networkx as nx
 import numpy as np
-from sympy.utilities.iterables import multiset_partitions
-from task_then_motion_planning.planning import TaskThenMotionPlanner
-
-from pybullet_blocks.envs.symbolic_block_stacking_env import (
-    SymbolicBlockStackingPyBulletBlocksEnv,
+from pybullet_blocks.envs.block_stacking_env import (
+    BlockStackingPyBulletObjectsEnv,
 )
 from pybullet_blocks.planning_models.action import get_active_operators_and_skills
 from pybullet_blocks.planning_models.perception import (
     PREDICATES,
     TYPES,
-    SymbolicBlockStackingPyBulletBlocksPerceiver,
+    BlockStackingPyBulletObjectsPerceiver,
 )
+from sympy.utilities.iterables import multiset_partitions
+from task_then_motion_planning.planning import TaskThenMotionPlanner
 
 """
     Given directed edge links and list of nodes, return the directed connected components of the graph
 """
+
+
 def find_connected_components(edges, num_nodes):
     G = nx.DiGraph()
     G.add_nodes_from(range(num_nodes))
@@ -41,22 +42,31 @@ def find_connected_components(edges, num_nodes):
 
     return sorted_components
 
+
 """
     Convert a partition (list of lists) into a hashable key (tuple of
     frozensets).
 """
+
+
 def partition_to_key(partition):
     return tuple(frozenset(subset) for subset in partition)
+
 
 """
     Efficiently map partitions to index numbers.
 """
+
+
 def create_partition_dict(partitions):
     return {partition_to_key(partition): i for i, partition in enumerate(partitions)}
+
 
 """
     Create index for each possible edge links
 """
+
+
 def create_edge_dict(num_nodes):
     edge_dict = {}
     count = 0
@@ -68,9 +78,12 @@ def create_edge_dict(num_nodes):
             count += 1
     return edge_dict
 
+
 """
     Tests Learn2Decompose planning in BlockStackingPyBulletBlocksEnv().
 """
+
+
 def test_learn2decompose_approach(return_edge_links=True):
 
     np.random.seed(25)
@@ -88,14 +101,14 @@ def test_learn2decompose_approach(return_edge_links=True):
 
     partition_dict = create_partition_dict(all_partitions)
 
-    env = SymbolicBlockStackingPyBulletBlocksEnv(use_gui=True)
-    sim = SymbolicBlockStackingPyBulletBlocksEnv(env.scene_description, use_gui=False)
+    env = BlockStackingPyBulletObjectsEnv(use_gui=True)
+    sim = BlockStackingPyBulletObjectsEnv(env.scene_description, use_gui=False)
 
     # from gymnasium.wrappers import RecordVideo
     # env = RecordVideo(env, "videos/block-stacking-ttmp-test")
     max_motion_planning_time = 0.5  # increase for prettier videos
 
-    perceiver = SymbolicBlockStackingPyBulletBlocksPerceiver(sim)
+    perceiver = BlockStackingPyBulletObjectsPerceiver(sim)
     operators, skill_types = get_active_operators_and_skills()
     skills = {
         s(sim, max_motion_planning_time=max_motion_planning_time) for s in skill_types
@@ -138,7 +151,9 @@ def test_learn2decompose_approach(return_edge_links=True):
         edge_links = init_graph.edge_links
         demonstration = []
 
-        connected_components = find_connected_components(edge_links, len(nodes) - 1) # subtract one node for the robot's pose
+        connected_components = find_connected_components(
+            edge_links, len(nodes) - 1
+        )  # subtract one node for the robot's pose
         scene_subgraph_id = partition_dict[partition_to_key(connected_components)]
         previous_unique_parition_id = scene_subgraph_id
 

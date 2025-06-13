@@ -1,12 +1,12 @@
 import torch
 import torch.nn.functional as F
-from torch_geometric.nn import GCNConv, GATConv
-from torch_geometric.nn import MessagePassing
+from torch_geometric.nn import GATConv, GCNConv, MessagePassing
 from torch_geometric.utils import add_self_loops
+
 
 class EdgeMPNNLayer(MessagePassing):
     def __init__(self, node_in_dim, edge_in_dim, out_dim):
-        super().__init__(aggr='add')
+        super().__init__(aggr="add")
         self.lin_node = torch.nn.Linear(node_in_dim, out_dim)
         self.lin_edge = torch.nn.Linear(edge_in_dim, out_dim)
 
@@ -30,6 +30,7 @@ class EdgeMPNNLayer(MessagePassing):
     def update(self, aggr_out):
         return aggr_out  # or add residuals, norm, etc.
 
+
 class EdgeMPNN(torch.nn.Module):
     def __init__(self, node_in_dim, edge_in_dim, hidden_dim):
         super().__init__()
@@ -46,6 +47,7 @@ class EdgeMPNN(torch.nn.Module):
         x = self.conv3(x, edge_index, edge_attr)
         x = F.relu(x)
         return self.out(x).squeeze()
+
 
 class GCNImportanceGNN(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels):
@@ -68,6 +70,7 @@ class GCNImportanceGNN(torch.nn.Module):
         x = self.out(x)
         return x.squeeze()  # shape: [num_nodes]
 
+
 class GATImportanceGNN(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, heads=4):
         super().__init__()
@@ -85,17 +88,17 @@ class GATImportanceGNN(torch.nn.Module):
         x = F.elu(x)
         x = self.out(x)
         return x.squeeze()
-    
+
+
 def get_model(model_type: str, in_channels: int, hidden_channels: int, **kwargs):
-    """
-    Factory function to return a GNN model.
-    
+    """Factory function to return a GNN model.
+
     Args:
         model_type (str): One of ["gcn", "gat"]
         in_channels (int): Input feature size
         hidden_channels (int): Hidden layer size
         kwargs: Extra keyword arguments (e.g., heads for GAT)
-    
+
     Returns:
         torch.nn.Module: A GNN model
     """
@@ -106,7 +109,9 @@ def get_model(model_type: str, in_channels: int, hidden_channels: int, **kwargs)
         heads = kwargs.get("heads", 4)
         return GATImportanceGNN(in_channels, hidden_channels, heads=heads)
     elif model_type == "mpnn":
-        edge_attr_channels = kwargs.get("edge_attr_channels", )
+        edge_attr_channels = kwargs.get(
+            "edge_attr_channels",
+        )
         return EdgeMPNN(in_channels, edge_attr_channels, hidden_channels)
     else:
         raise ValueError(f"Unknown model_type: {model_type}")

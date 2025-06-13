@@ -1,9 +1,10 @@
 import torch
-from torch_geometric.loader import DataLoader
-from python_research_starter.subgoal_pipeline.GNN_Models import get_model
-from python_research_starter.subgoal_pipeline.GraphPairDataset import GraphPairDataset
 from sklearn.metrics import f1_score
 from torch.utils.data import Subset
+from torch_geometric.loader import DataLoader
+
+from python_research_starter.subgoal_pipeline.GNN_Models import get_model
+from python_research_starter.subgoal_pipeline.GraphPairDataset import GraphPairDataset
 
 # Load data
 dataset_optimal = GraphPairDataset("val_dataset_optimal.pkl")

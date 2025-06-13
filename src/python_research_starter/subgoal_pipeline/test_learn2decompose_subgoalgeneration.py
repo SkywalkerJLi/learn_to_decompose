@@ -2,16 +2,18 @@
 
 import pickle
 
-from pybullet_blocks.envs.symbolic_block_stacking_env import (
-    SymbolicBlockStackingPyBulletBlocksEnv,
+from pybullet_blocks.envs.block_stacking_env import (
+    BlockStackingPyBulletObjectsEnv,
 )
 
 """
     Tests Learn2Decompose planning in BlockStackingPyBulletBlocksEnv().
 """
+
+
 def test_learn2decompose_approach():
 
-    env = SymbolicBlockStackingPyBulletBlocksEnv(use_gui=True)
+    env = BlockStackingPyBulletObjectsEnv(use_gui=True)
 
     goal_pile = [["B", "A"]]
     init_piles = [["A", "B", "C", "D", "E", "F"]]
@@ -26,7 +28,7 @@ def test_learn2decompose_approach():
     init_state = env.get_state()
     init_graph = init_state.to_observation()
     print(init_graph)
-    
+
     with open("abcdef.pkl", "wb") as f:
-            pickle.dump(init_graph, f)
+        pickle.dump(init_graph, f)
     env.close()

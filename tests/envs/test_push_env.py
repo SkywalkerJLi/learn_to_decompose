@@ -1,16 +1,15 @@
 """Tests for push_env.py."""
 
 import numpy as np
+from pybullet_blocks.envs.push_env import (
+    PushPyBulletBlocksEnv,
+    PushPyBulletBlocksState,
+)
 from pybullet_helpers.geometry import Pose, iter_between_poses, multiply_poses
 from pybullet_helpers.motion_planning import (
     create_joint_distance_fn,
     run_smooth_motion_planning_to_pose,
     smoothly_follow_end_effector_path,
-)
-
-from pybullet_blocks.envs.push_env import (
-    PushPyBulletBlocksEnv,
-    PushPyBulletBlocksState,
 )
 
 

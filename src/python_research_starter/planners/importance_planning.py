@@ -11,9 +11,8 @@ from relational_structs import (
     Type,
 )
 from relational_structs.utils import parse_pddl_plan
-from tomsutils.pddl_planning import run_pddl_planner
-
 from task_then_motion_planning.structs import Perceiver, Skill, _Action, _Observation
+from tomsutils.pddl_planning import run_pddl_planner
 
 
 class TaskThenMotionPlanningFailure(Exception):
@@ -21,7 +20,8 @@ class TaskThenMotionPlanningFailure(Exception):
 
 
 class TaskThenMotionPlannerImportance(Generic[_Observation, _Action]):
-    """Run task then motion planning with greedy execution and importance filtering."""
+    """Run task then motion planning with greedy execution and importance
+    filtering."""
 
     def __init__(
         self,
@@ -48,12 +48,21 @@ class TaskThenMotionPlannerImportance(Generic[_Observation, _Action]):
         self._current_operator: GroundOperator | None = None
         self._current_skill: Skill | None = None
 
-    def reset(self, obs: _Observation, info: dict[str, Any], importance_scores: Optional[list] = None, threshold: Optional[float] = None) -> list[GroundOperator]:
+    def reset(
+        self,
+        obs: _Observation,
+        info: dict[str, Any],
+        importance_scores: Optional[list] = None,
+        threshold: Optional[float] = None,
+    ) -> list[GroundOperator]:
         """Reset on a new task instance."""
-        """Greedily rerun the planner with a lower threshold until a feasible plan is produced"""
+        """Greedily rerun the planner with a lower threshold until a feasible
+        plan is produced."""
         plan_str = None
         while plan_str is None:
-            objects, atoms, goal = self._perceiver.reset(obs, info, importance_scores, threshold)
+            objects, atoms, goal = self._perceiver.reset(
+                obs, info, importance_scores, threshold
+            )
             print("important objects")
             print(objects)
             print("atoms")
@@ -75,10 +84,10 @@ class TaskThenMotionPlannerImportance(Generic[_Observation, _Action]):
             plan_str, self._domain, self._current_problem
         )
         if importance_scores is None:
-            print('baseline')
+            print("baseline")
             print(self._current_task_plan)
         else:
-            print('importance plan')
+            print("importance plan")
             print(self._current_task_plan)
         self._current_operator = None
         self._current_skill = None

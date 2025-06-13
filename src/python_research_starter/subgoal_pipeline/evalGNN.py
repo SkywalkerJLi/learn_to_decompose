@@ -1,10 +1,13 @@
 import torch
 from torch_geometric.loader import DataLoader
+
 from python_research_starter.subgoal_pipeline.GNN_Models import get_model
 from python_research_starter.subgoal_pipeline.GraphPairDataset import GraphPairDataset
 
 # Load validation data
-dataset = GraphPairDataset("src/python_research_starter/subgoal_pipeline/datasets/val_dataset_optimal.pkl")
+dataset = GraphPairDataset(
+    "src/python_research_starter/subgoal_pipeline/datasets/val_dataset_optimal.pkl"
+)
 print(len(dataset))
 
 # Model and datapipeline initialization
@@ -14,10 +17,16 @@ in_channels = dataset[0].x.size(1)
 hidden_channels = 64
 edge_attr_channels = dataset[0].edge_attr.size(1)
 
-mp_model = get_model("mpnn", in_channels, hidden_channels, edge_attr_channels = edge_attr_channels)
+mp_model = get_model(
+    "mpnn", in_channels, hidden_channels, edge_attr_channels=edge_attr_channels
+)
 
 # Load the saved model weights
-mp_model.load_state_dict(torch.load("/Users/skywalkerli/Desktop/Princeton_2024_2025/Research/learn-to-decompose/src/python_research_starter/subgoal_pipeline/saved_models/mp_graph_importance_checkpoint.pt")['model_state_dict'])
+mp_model.load_state_dict(
+    torch.load(
+        "/Users/skywalkerli/Desktop/Princeton_2024_2025/Research/learn-to-decompose/src/python_research_starter/subgoal_pipeline/saved_models/mp_graph_importance_checkpoint.pt"
+    )["model_state_dict"]
+)
 mp_model.eval()  # Set model to evaluation mode
 
 # Data preprocessing
@@ -45,14 +54,14 @@ with torch.no_grad():
     for data in loader:
         # Forward pass
         out = mp_model(data.x, data.edge_index, data.edge_attr)
-        
+
         # Get graph1 nodes using the indicator feature
         labels = data.y
-        
+
         # Calculate loss
         loss = loss_fn(out, labels)
         total_loss += loss.item()
-        
+
         # Store predictions and ground truth for metrics
         pred_probs = torch.sigmoid(out)  # Convert logits to probabilities
         predictions.append(pred_probs)
@@ -78,10 +87,10 @@ for i in range(min(5, len(dataset))):  # Show first 5 examples
     with torch.no_grad():
         out = mp_model(data.x, data.edge_index, data.edge_attr)
         importance_scores = torch.sigmoid(out)
-        
+
     print(f"\nExample {i+1}:")
     print("Input graph: ", data.x)
     print("Input edge_links", data.edge_index)
     print(f"Node importance scores: {importance_scores.numpy()}")
-    print(f"One-hot scores: {importance_scores.numpy() > 0.5}" )
+    print(f"One-hot scores: {importance_scores.numpy() > 0.5}")
     print(f"True labels: {data.y.numpy()}")

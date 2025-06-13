@@ -1,26 +1,28 @@
 """Tests for learn2decompose_approach.py."""
 
-import random
-import pickle
 import os
+import pickle
+import random
+
 import networkx as nx
 import numpy as np
-from sympy.utilities.iterables import multiset_partitions
-from task_then_motion_planning.planning import TaskThenMotionPlanner
-
-from pybullet_blocks.envs.symbolic_block_stacking_env import (
-    SymbolicBlockStackingPyBulletBlocksEnv,
+from pybullet_blocks.envs.block_stacking_env import (
+    BlockStackingPyBulletObjectsEnv,
 )
 from pybullet_blocks.planning_models.action import get_active_operators_and_skills
 from pybullet_blocks.planning_models.perception import (
     PREDICATES,
     TYPES,
-    SymbolicBlockStackingPyBulletBlocksPerceiver,
+    BlockStackingPyBulletObjectsPerceiver,
 )
+from sympy.utilities.iterables import multiset_partitions
+from task_then_motion_planning.planning import TaskThenMotionPlanner
 
 """
     Given directed edge links and list of nodes, return the directed connected components of the graph
 """
+
+
 def find_connected_components(edges, num_nodes):
     G = nx.DiGraph()
     G.add_nodes_from(range(num_nodes))
@@ -42,22 +44,31 @@ def find_connected_components(edges, num_nodes):
 
     return sorted_components
 
+
 """
     Convert a partition (list of lists) into a hashable key (tuple of
     frozensets).
 """
+
+
 def partition_to_key(partition):
     return tuple(frozenset(subset) for subset in partition)
+
 
 """
     Efficiently map partitions to index numbers.
 """
+
+
 def create_partition_dict(partitions):
     return {partition_to_key(partition): i for i, partition in enumerate(partitions)}
+
 
 """
     Create index for each possible edge links
 """
+
+
 def create_edge_dict(num_nodes):
     edge_dict = {}
     count = 0
@@ -69,15 +80,22 @@ def create_edge_dict(num_nodes):
             count += 1
     return edge_dict
 
+
 """
     Checks if one list is a subset of another
 """
+
+
 def is_subset(list1, list2):
     return set(list1).issubset(set(list2))
+
+
 """
 
     Tests Learn2Decompose planning in BlockStackingPyBulletBlocksEnv().
 """
+
+
 def test_learn2decompose_approach(return_edge_links=True):
 
     np.random.seed(903)
@@ -95,14 +113,14 @@ def test_learn2decompose_approach(return_edge_links=True):
 
     partition_dict = create_partition_dict(all_partitions)
 
-    env = SymbolicBlockStackingPyBulletBlocksEnv(use_gui=False)
-    sim = SymbolicBlockStackingPyBulletBlocksEnv(env.scene_description, use_gui=False)
+    env = BlockStackingPyBulletObjectsEnv(use_gui=False)
+    sim = BlockStackingPyBulletObjectsEnv(env.scene_description, use_gui=False)
 
     # from gymnasium.wrappers import RecordVideo
     # env = RecordVideo(env, "videos/block-stacking-ttmp-test")
     max_motion_planning_time = 0.5  # increase for prettier videos
 
-    perceiver = SymbolicBlockStackingPyBulletBlocksPerceiver(sim)
+    perceiver = BlockStackingPyBulletObjectsPerceiver(sim)
     operators, skill_types = get_active_operators_and_skills()
     skills = {
         s(sim, max_motion_planning_time=max_motion_planning_time) for s in skill_types
@@ -121,8 +139,20 @@ def test_learn2decompose_approach(return_edge_links=True):
     init_configurations = list(multiset_partitions(scene_blocks, m=None))
     goal_pile = [["A", "B", "C", "D", "E", "F"]]
 
-    common_edge_link_patterns = [[1], [1, 11], [1, 11, 19], [1, 11, 19, 25], [1, 11, 19, 25,29]]
-    ground_truth_subgoal_filepath = ["ab.pkl", "abc.pkl", "abcd.pkl", "abcde.pkl", "abcdef.pkl"]
+    common_edge_link_patterns = [
+        [1],
+        [1, 11],
+        [1, 11, 19],
+        [1, 11, 19, 25],
+        [1, 11, 19, 25, 29],
+    ]
+    ground_truth_subgoal_filepath = [
+        "ab.pkl",
+        "abc.pkl",
+        "abcd.pkl",
+        "abcde.pkl",
+        "abcdef.pkl",
+    ]
 
     # Number of distinct demonstrations to generate scene data from
     num_demonstrations = 200
@@ -175,7 +205,9 @@ def test_learn2decompose_approach(return_edge_links=True):
         print(subgoal_index)
         demonstration = []
 
-        connected_components = find_connected_components(edge_links, len(nodes) - 1) # subtract one node for the robot's pose
+        connected_components = find_connected_components(
+            edge_links, len(nodes) - 1
+        )  # subtract one node for the robot's pose
         scene_subgraph_id = partition_dict[partition_to_key(connected_components)]
         previous_unique_parition_id = scene_subgraph_id
 
@@ -205,37 +237,48 @@ def test_learn2decompose_approach(return_edge_links=True):
                 assert reward > 0
                 break
 
-            if scene_subgraph_id != previous_unique_parition_id and subgoal_index < len(common_edge_link_patterns): # ensure that no duplicate states are considered
+            if (
+                scene_subgraph_id != previous_unique_parition_id
+                and subgoal_index < len(common_edge_link_patterns)
+            ):  # ensure that no duplicate states are considered
                 edge_index_list = []
                 for edge_link in edge_links:
                     edge_index_list.append(edge_links_to_index[tuple(edge_link)])
                 edge_index_list.sort()
-                
+
                 # If the scene graph is at the new subgoal, store the entire scene graph and determine the important object
                 important_objects_list = np.zeros(len(nodes) - 1)
                 print(common_edge_link_patterns[subgoal_index])
-                if nodes[1][10] == -1 and is_subset(common_edge_link_patterns[subgoal_index], edge_index_list):
-                    print('is subset')
-                    for i, (prev_node, curr_node) in enumerate(zip(prev_subgoal_graph.nodes[1:], nodes[1:])):
+                if nodes[1][10] == -1 and is_subset(
+                    common_edge_link_patterns[subgoal_index], edge_index_list
+                ):
+                    print("is subset")
+                    for i, (prev_node, curr_node) in enumerate(
+                        zip(prev_subgoal_graph.nodes[1:], nodes[1:])
+                    ):
                         print("Node: ", chr(int(prev_node[8] + 97)).upper())
                         print("Previously node is on: ", prev_node[10])
                         print("Currently node is on: ", curr_node[10])
                         print("Previously node is at: ", prev_node[1])
                         print("Currently node is at: ", curr_node[1])
-                        # If the node changed what block it is on top of or its state in any way, it is important 
-                        if(prev_node[10] != curr_node[10]) or (abs(prev_node[1] - curr_node[1]) > 0.075):
+                        # If the node changed what block it is on top of or its state in any way, it is important
+                        if (prev_node[10] != curr_node[10]) or (
+                            abs(prev_node[1] - curr_node[1]) > 0.075
+                        ):
                             important_objects_list[i] = 1
-                    
+
                     # Append new demonstration to training dataset
                     file_path = ground_truth_subgoal_filepath[subgoal_index]
                     with open(file_path, "rb") as f:
                         subgoal = pickle.load(f)
-                    
+
                     print("THINGS TO STORE AS TRAINING DATA")
                     # print(subgoal)
                     # print(prev_subgoal_graph)
                     print(important_objects_list)
-                    training_dataset.append((prev_subgoal_graph, important_objects_list, subgoal))
+                    training_dataset.append(
+                        (prev_subgoal_graph, important_objects_list, subgoal)
+                    )
                     prev_subgoal_graph = scene_graph
                     subgoal_index += 1
 
@@ -245,5 +288,5 @@ def test_learn2decompose_approach(return_edge_links=True):
 
         with open("val_dataset_optimal.pkl", "wb") as f:
             pickle.dump(training_dataset, f)
-        
+
     env.close()

@@ -1,12 +1,15 @@
 import torch
-from torch_geometric.loader import DataLoader
-from python_research_starter.subgoal_pipeline.GNN_Models import get_model
-from python_research_starter.subgoal_pipeline.GraphPairDataset import GraphPairDataset
 from sklearn.metrics import f1_score
 from torch.utils.data import Subset
+from torch_geometric.loader import DataLoader
+
+from python_research_starter.subgoal_pipeline.GNN_Models import get_model
+from python_research_starter.subgoal_pipeline.GraphPairDataset import GraphPairDataset
 
 # Load data
-dataset = GraphPairDataset("src/python_research_starter/subgoal_pipeline/datasets/dataset_optimal.pkl")
+dataset = GraphPairDataset(
+    "src/python_research_starter/subgoal_pipeline/datasets/dataset_optimal.pkl"
+)
 print(len(dataset))
 
 # Model and datapipeline initialization
@@ -21,7 +24,9 @@ in_channels = dataset[0].x.size(1)
 hidden_channels = 64
 edge_attr_channels = dataset[0].edge_attr.size(1)
 
-mp_model = get_model("mpnn", in_channels, hidden_channels, edge_attr_channels = edge_attr_channels)
+mp_model = get_model(
+    "mpnn", in_channels, hidden_channels, edge_attr_channels=edge_attr_channels
+)
 
 # Data preprocessing
 total_ones = 0
@@ -46,7 +51,7 @@ mp_model.train()
 
 # relevant_indicies = torch.tensor([1, 2, 3, 4, 5, 6, 7, 8, 10])
 # for data in single_loader:
-    
+
 #     # truncated_data = []
 #     # for node in data.x:
 #     #     truncated_data.append(node[relevant_indicies])
@@ -87,9 +92,9 @@ for epoch in range(epochs):
         targets = labels.long().cpu().numpy()
 
         if epoch == 990:
-            print("prediction: ",  pred_probs)
+            print("prediction: ", pred_probs)
             print("binary predictions: ", (pred_probs > 0.5).float())
-            print("targets:",  targets)
+            print("targets:", targets)
         # print("ground truth : ", targets)
 
         all_preds.extend(pred)
@@ -99,10 +104,10 @@ for epoch in range(epochs):
 
     if epoch % 10 == 0:
         checkpoint = {
-            'epoch': epoch,
-            'model_state_dict': mp_model.state_dict(),
-            'optimizer_state_dict': mp_optimizer.state_dict(),
-            'loss': total_loss,
+            "epoch": epoch,
+            "model_state_dict": mp_model.state_dict(),
+            "optimizer_state_dict": mp_optimizer.state_dict(),
+            "loss": total_loss,
         }
         torch.save(checkpoint, "mp_graph_importance_checkpoint.pt")
 
