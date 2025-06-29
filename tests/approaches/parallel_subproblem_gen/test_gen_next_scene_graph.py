@@ -25,11 +25,11 @@ from pybullet_blocks.planning_models.perception import (
 from pybullet_helpers.geometry import Pose, get_pose, set_pose
 from sympy.utilities.iterables import multiset_partitions
 
-from python_research_starter.planners.importance_planning import (
+from learn_to_decompose.planners.importance_planning import (
     TaskThenMotionPlannerImportance,
 )
-from python_research_starter.subgoal_pipeline.GNN_Models import get_model
-from python_research_starter.subgoal_pipeline.GraphPairDataset import GraphPairDataset
+from learn_to_decompose.approaches.subgoal_pipeline.GNN_Models import get_model
+from learn_to_decompose.approaches.subgoal_pipeline.GraphPairDataset import GraphPairDataset
 
 print(os.getcwd())
 in_channels = 18
@@ -136,12 +136,8 @@ def calculate_plans_parallel(input_list, plan_function, max_workers=None):
     return results
 
 
-"""
-    Tests Learn2Decompose planning in BlockStackingPyBulletBlocksEnv().
-"""
-
-
-def test_learn2decompose_approach(return_edge_links=True):
+""" Generates parallel subproblems in the BlockStackingPyBulletObjectsEnv(). """
+def gen_next_scene_graph(return_edge_links=True):
 
     elements = [0, 1, 2, 3, 4, 5]
     # Generate all partitions and assign them fixed numbers
