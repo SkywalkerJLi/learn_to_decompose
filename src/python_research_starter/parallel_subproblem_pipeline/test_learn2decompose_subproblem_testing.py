@@ -47,9 +47,8 @@ mp_model.load_state_dict(
     )["model_state_dict"]
 )
 mp_model.eval()  # Set model to evaluation mode
-"""
-    Given directed edge links and list of nodes, return the directed connected components of the graph
-"""
+"""Given directed edge links and list of nodes, return the directed connected
+components of the graph."""
 
 
 def find_connected_components(edges, num_nodes):
