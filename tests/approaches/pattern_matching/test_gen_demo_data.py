@@ -84,7 +84,7 @@ def create_edge_dict(num_nodes):
 """
 
 
-def test_pattern_matching(return_edge_links=True):
+def test_gen_demo_data(return_edge_links=True):
 
     np.random.seed(25)
 

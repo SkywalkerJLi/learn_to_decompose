@@ -10,13 +10,17 @@ from concurrent.futures import ProcessPoolExecutor
 
 import networkx as nx
 import numpy as np
+from pathlib import Path
 
 # GNN
 import torch
 from pybullet_blocks.envs.block_stacking_env import (
     BlockStackingPyBulletObjectsEnv,
 )
-from pybullet_blocks.planning_models.action import get_active_operators_and_skills
+from pybullet_blocks.planning_models.action import (
+    OPERATORS,
+    SKILLS,
+)
 from pybullet_blocks.planning_models.perception import (
     PREDICATES,
     TYPES,
@@ -31,7 +35,6 @@ from learn_to_decompose.planners.importance_planning import (
 from learn_to_decompose.approaches.subgoal_pipeline.GNN_Models import get_model
 from learn_to_decompose.approaches.subgoal_pipeline.GraphPairDataset import GraphPairDataset
 
-print(os.getcwd())
 in_channels = 18
 hidden_channels = 64
 edge_attr_channels = 4
@@ -41,11 +44,9 @@ mp_model = get_model(
 )
 
 # Load the saved model weights
-mp_model.load_state_dict(
-    torch.load(
-        "/Users/skywalkerli/Desktop/Princeton_2024_2025/Research/learn-to-decompose/src/python_research_starter/subgoal_pipeline/saved_models/mp_graph_importance_checkpoint.pt"
-    )["model_state_dict"]
-)
+checkpoint_path = Path("../../../src/learn_to_decompose/approaches/subgoal_pipeline/saved_models/mp_graph_importance_checkpoint.pt")
+mp_model.load_state_dict(torch.load(checkpoint_path)["model_state_dict"])
+
 mp_model.eval()  # Set model to evaluation mode
 """Given directed edge links and list of nodes, return the directed connected
 components of the graph."""
@@ -137,7 +138,7 @@ def calculate_plans_parallel(input_list, plan_function, max_workers=None):
 
 
 """ Generates parallel subproblems in the BlockStackingPyBulletObjectsEnv(). """
-def gen_next_scene_graph(return_edge_links=True):
+def test_gen_next_scene_graph(return_edge_links=True):
 
     elements = [0, 1, 2, 3, 4, 5]
     # Generate all partitions and assign them fixed numbers
@@ -160,18 +161,15 @@ def gen_next_scene_graph(return_edge_links=True):
     max_motion_planning_time = 0.5  # increase for prettier videos
 
     perceiver = BlockStackingPyBulletObjectsPerceiver(sim)
-    operators, skill_types = get_active_operators_and_skills()
-    skills = {
-        s(sim, max_motion_planning_time=max_motion_planning_time) for s in skill_types
-    }
+    skills = {s(sim, max_motion_planning_time=max_motion_planning_time) for s in SKILLS}
 
     # Create the planner.
     planner = TaskThenMotionPlannerImportance(
-        TYPES, PREDICATES, perceiver, operators, skills, planner_id="fd-sat"
+        TYPES, PREDICATES, perceiver, OPERATORS, skills, planner_id="fd-sat"
     )
 
     planner_baseline = TaskThenMotionPlannerImportance(
-        TYPES, PREDICATES, perceiver, operators, skills, planner_id="fd-sat"
+        TYPES, PREDICATES, perceiver, OPERATORS, skills, planner_id="fd-sat"
     )
 
     # Run an episode.
@@ -245,11 +243,11 @@ def gen_next_scene_graph(return_edge_links=True):
         print(subgoal_index)
 
         ground_truth_subgoal_filepath = [
-            "../subgoal_pipeline/subgoals/ab.pkl",
-            "../subgoal_pipeline/subgoals/abc.pkl",
-            "../subgoal_pipeline/subgoals/abcd.pkl",
-            "../subgoal_pipeline/subgoals/abcde.pkl",
-            "../subgoal_pipeline/subgoals/abcdef.pkl",
+            "../../../src/learn_to_decompose/approaches/subgoal_pipeline/subgoals/ab.pkl",
+            "../../../src/learn_to_decompose/approaches/subgoal_pipeline/subgoals/abc.pkl",
+            "../../../src/learn_to_decompose/approaches/subgoal_pipeline/subgoals/abcd.pkl",
+            "../../../src/learn_to_decompose/approaches/subgoal_pipeline/subgoals/abcde.pkl",
+            "../../../src/learn_to_decompose/approaches/subgoal_pipeline/subgoals/abcdef.pkl",
         ]
 
         subgoal_piles = [
@@ -338,19 +336,19 @@ def gen_next_scene_graph(return_edge_links=True):
                 letter = subgoal[block_index]
                 print("first block letter")
                 print(letter)
-                block_id = env.letter_to_block_id[letter]
-                block_pose = env.sample_free_block_pose(block_id)
+                block_id = env.label_to_block_id[letter]
+                block_pose = env.sample_free_object_pose(block_id)
                 block_position = block_pose.position
             else:  # Otherwise, get position of current highest block
                 block_index = block_index - 1
                 letter = subgoal[block_index]
                 print("first block letter")
                 print(letter)
-                block_id = env.letter_to_block_id[letter]
+                block_id = env.label_to_block_id[letter]
                 world_to_block = get_pose(block_id, env.physics_client_id)
                 block_position = world_to_block.position
 
-            block_height = 2 * env.scene_description.block_half_extents[2]
+            block_height = 2 * env.scene_description.object_half_extents[2]
             # Stack blocks in subgoal
             print("stack blocks")
             for i, letter in enumerate(subgoal[block_index + 1 :]):
@@ -359,7 +357,7 @@ def gen_next_scene_graph(return_edge_links=True):
                 print(letter)
                 dz = (i + 1) * block_height
                 position = np.add(block_position, (0, 0, dz))
-                block_id = env.letter_to_block_id[letter]
+                block_id = env.label_to_block_id[letter]
                 set_pose(block_id, Pose(tuple(position)), env.physics_client_id)
 
             # For all remaining important blocks, sample a free block pose
@@ -368,8 +366,8 @@ def gen_next_scene_graph(return_edge_links=True):
                     letter = goal[block_index]
                     print("other important blocks")
                     print(letter)
-                    block_id = env.letter_to_block_id[letter]
-                    block_pose = env.sample_free_block_pose(block_id)
+                    block_id = env.label_to_block_id[letter]
+                    block_pose = env.sample_free_object_pose(block_id)
 
             next_state = env.get_state()
             next_graph = next_state.to_observation()

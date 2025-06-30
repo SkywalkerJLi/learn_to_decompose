@@ -96,7 +96,7 @@ def is_subset(list1, list2):
 """
 
 
-def test_learn2decompose_approach(return_edge_links=True):
+def test_gen_graph_data(return_edge_links=True):
 
     np.random.seed(903)
 
